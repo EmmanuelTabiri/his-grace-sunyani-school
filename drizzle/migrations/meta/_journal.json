@@ -22,6 +22,13 @@
       "when": 1792366515203,
       "tag": "0002_add_head_teacher_role",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792366530365,
+      "tag": "0003_head_teacher_permissions",
+      "breakpoints": true
     }
   ]
 }

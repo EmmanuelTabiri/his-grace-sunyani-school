@@ -245,6 +245,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_teacher: { Args: { _target: string }; Returns: boolean }
       can_view_student: { Args: { _student_id: string }; Returns: boolean }
       has_role: {
         Args: {
