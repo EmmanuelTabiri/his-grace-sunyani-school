@@ -245,6 +245,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_teacher: { Args: { _target: string }; Returns: boolean }
       can_view_student: { Args: { _student_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -257,7 +258,7 @@ export type Database = {
       is_staff: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "teacher" | "student" | "parent"
+      app_role: "admin" | "teacher" | "student" | "parent" | "head_teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -385,7 +386,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "teacher", "student", "parent"],
+      app_role: ["admin", "teacher", "student", "parent", "head_teacher"],
     },
   },
 } as const

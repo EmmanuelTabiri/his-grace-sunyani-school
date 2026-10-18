@@ -5,3 +5,4 @@
 - [x] Fees + printable receipts (GHS)
 - [ ] Email receipts — needs a verified sender domain
 - [x] Teacher marks, homework, announcements
+- [x] Head teacher: teacher access and student management below admin
