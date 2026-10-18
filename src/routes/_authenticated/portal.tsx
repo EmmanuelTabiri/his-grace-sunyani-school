@@ -111,7 +111,7 @@ function AdminArea() {
     e.preventDefault();
     const form = e.currentTarget; const f = new FormData(form);
     const amount = Number(f.get("amount"));
-    if (!(amount > 0)) return toast.error("Enter an amount greater than 0");
+    if (!(amount > 0)) { toast.error("Enter an amount greater than 0"); return; }
     const paid = f.get("status") === "paid";
     const { error } = await supabase.from("fees").insert({
       student_id: String(f.get("student")), description: String(f.get("description")), amount,
