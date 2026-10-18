@@ -5,13 +5,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
 import { StaffTools, FamilyLearning } from "@/components/portal/Classroom";
-import type { Database } from "@/integrations/supabase/types";
-
-type Role = Database["public"]["Enums"]["app_role"];
-const ROLES: Role[] = ["admin", "teacher", "student", "parent"];
+import { Button } from "@/components/ui/button";
+import { meta } from "@/components/SiteLayout";
+import { ROLES, roleLabel, canChangeRole, type Role } from "@/lib/portal-access";
 
 export const Route = createFileRoute("/_authenticated/portal")({
-  head: () => ({ meta: [{ title: "Portal | His Grace Academy" }, { name: "robots", content: "noindex" }] }),
+  head: () => { const tags = meta("School Portal", "Manage students, teachers, learning and school fees at His Grace Academy."); return { ...tags, meta: [...tags.meta, { name: "robots", content: "noindex" }] }; },
   component: Portal,
 });
 
@@ -36,7 +35,7 @@ function Portal() {
         <div className="container-page flex h-16 items-center justify-between">
           <Link to="/" className="font-display text-lg font-extrabold">His Grace Academy <span className="text-secondary">Portal</span></Link>
           <div className="flex items-center gap-3 text-sm">
-            <span className="hidden sm:inline opacity-80">{user.email} · {roles.join(", ") || "no role"}</span>
+            <span className="hidden sm:inline opacity-80">{user.email} · {roles.map(roleLabel).join(", ") || "no role"}</span>
             <button onClick={signOut} className="btn-sun !py-2">Sign out</button>
           </div>
         </div>
@@ -46,9 +45,9 @@ function Portal() {
           <Card title="Awaiting access"><p className="text-muted-foreground">Your account is registered. The school office will assign your access (teacher, student or parent) shortly.</p></Card>
         ) : (
           <>
-            {roles.includes("admin") && <AdminArea />}
-            {roles.includes("teacher") && !roles.includes("admin") && <TeacherArea />}
-            {(roles.includes("admin") || roles.includes("teacher")) && <StaffTools userId={user.id} />}
+            {(roles.includes("admin") || roles.includes("head_teacher")) && <AdminArea roles={roles} userId={user.id} />}
+            {roles.includes("teacher") && !roles.includes("admin") && !roles.includes("head_teacher") && <TeacherArea />}
+            {(roles.includes("admin") || roles.includes("head_teacher") || roles.includes("teacher")) && <StaffTools userId={user.id} />}
             {(roles.includes("student") || roles.includes("parent")) && <><FamilyLearning /><FamilyArea /></>}
           </>
         )}
@@ -78,20 +77,25 @@ function useProfiles() {
 function useStudents() {
   return useQuery({ queryKey: ["students"], queryFn: async () => (await supabase.from("students").select("*").order("full_name")).data ?? [] });
 }
-function useFees() {
-  return useQuery({ queryKey: ["fees"], queryFn: async () => (await supabase.from("fees").select("*, students(full_name, class_name)").order("created_at", { ascending: false })).data ?? [] });
+function useFees(enabled = true) {
+  return useQuery({ queryKey: ["fees"], enabled, queryFn: async () => (await supabase.from("fees").select("*, students(full_name, class_name)").order("created_at", { ascending: false })).data ?? [] });
 }
 
-function AdminArea() {
+function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
+  const isAdmin = roles.includes("admin");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const qc = useQueryClient();
   const { data: profiles = [] } = useProfiles();
   const { data: students = [] } = useStudents();
-  const { data: fees = [] } = useFees();
+  const { data: fees = [] } = useFees(isAdmin);
+  const editing = students.find((s) => s.id === editingId);
   const outstanding = fees.filter((f) => f.status === "unpaid").reduce((s, f) => s + Number(f.amount), 0);
   const collected = fees.filter((f) => f.status === "paid").reduce((s, f) => s + Number(f.amount), 0);
   const refresh = () => qc.invalidateQueries();
 
   async function toggleRole(userId: string, role: Role, has: boolean) {
+    const target = profiles.find((p) => p.id === userId);
+    if (!target || !canChangeRole(roles, target.roles, role, false)) return;
     if (has && !confirm(`Remove ${role} access?`)) return;
     const { error } = has
       ? await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role)
@@ -102,11 +106,19 @@ function AdminArea() {
   async function addStudent(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget; const f = new FormData(form);
-    const { error } = await supabase.from("students").insert({
+    const values = {
       full_name: String(f.get("name")), class_name: String(f.get("class")),
       student_user_id: (f.get("student_user") as string) || null, guardian_user_id: (f.get("guardian") as string) || null,
-    });
-    if (error) toast.error(error.message); else { toast.success("Student added"); form.reset(); refresh(); }
+    };
+    const { error } = editingId
+      ? await supabase.from("students").update(values).eq("id", editingId)
+      : await supabase.from("students").insert(values);
+    if (error) toast.error(error.message); else { toast.success(editingId ? "Student updated" : "Student added"); form.reset(); setEditingId(null); refresh(); }
+  }
+
+  async function toggleActive(id: string, active: boolean) {
+    const { error } = await supabase.from("students").update({ active: !active }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success(active ? "Student deactivated" : "Student reactivated"); refresh(); }
   }
 
   async function addFee(e: FormEvent<HTMLFormElement>) {
@@ -133,21 +145,22 @@ function AdminArea() {
 
   return (
     <>
+      {!isAdmin && <h1 className="text-2xl font-extrabold">Head teacher</h1>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[["Students", students.length], ["Portal users", profiles.length], ["Fees collected", cedi(collected)], ["Outstanding", cedi(outstanding)]].map(([k, v]) => (
+        {[["Students", students.length], ["Portal users", profiles.length], ...(isAdmin ? [["Fees collected", cedi(collected)], ["Outstanding", cedi(outstanding)]] : [["Teachers", profiles.filter((p) => p.roles.includes("teacher")).length]])].map(([k, v]) => (
           <div key={k} className="rounded-2xl bg-navy p-5 text-navy-foreground"><p className="text-sm opacity-80">{k}</p><p className="mt-1 text-2xl font-extrabold text-secondary">{v}</p></div>
         ))}
       </div>
 
-      <Card title="Users & access">
+      <Card title={isAdmin ? "Users & access" : "Teachers & access"}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Email</th>{ROLES.map((r) => <th key={r} className="capitalize">{r}</th>)}</tr></thead>
+            <thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Email</th>{ROLES.map((r) => <th key={r}>{roleLabel(r)}</th>)}</tr></thead>
             <tbody>{profiles.map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="py-2 font-semibold">{p.full_name || "—"}</td><td>{p.email}</td>
                 {ROLES.map((r) => { const has = p.roles.includes(r); return (
-                  <td key={r}><input type="checkbox" aria-label={`${r} access for ${p.email}`} checked={has} onChange={() => toggleRole(p.id, r, has)} /></td>
+                  <td key={r}><input type="checkbox" aria-label={`${roleLabel(r)} access for ${p.email}`} checked={has} disabled={!canChangeRole(roles, p.roles, r, p.id === userId)} onChange={() => toggleRole(p.id, r, has)} /></td>
                 ); })}
               </tr>))}</tbody>
           </table>
@@ -155,22 +168,23 @@ function AdminArea() {
       </Card>
 
       <Card title="Students">
-        <form onSubmit={addStudent} className="mb-5 grid gap-3 md:grid-cols-5">
-          <input name="name" required placeholder="Student full name" className={field} aria-label="Student full name" />
-          <input name="class" required placeholder="Class e.g. Basic 4" className={field} aria-label="Class" />
-          <select name="student_user" className={field} aria-label="Student login"><option value="">Student login (optional)</option>
+        <form key={editingId ?? "new"} onSubmit={addStudent} className="mb-5 grid gap-3 md:grid-cols-5">
+          <input name="name" defaultValue={editing?.full_name} required placeholder="Student full name" className={field} aria-label="Student full name" />
+          <input name="class" defaultValue={editing?.class_name} required placeholder="Class e.g. Basic 4" className={field} aria-label="Class" />
+          <select name="student_user" defaultValue={editing?.student_user_id ?? ""} className={field} aria-label="Student login"><option value="">Student login (optional)</option>
             {profiles.filter((p) => p.roles.includes("student")).map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select>
-          <select name="guardian" className={field} aria-label="Parent login"><option value="">Parent login (optional)</option>
+          <select name="guardian" defaultValue={editing?.guardian_user_id ?? ""} className={field} aria-label="Parent login"><option value="">Parent login (optional)</option>
             {profiles.filter((p) => p.roles.includes("parent")).map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select>
-          <button className="btn-primary justify-center">Add student</button>
+          <Button type="submit">{editingId ? "Save student" : "Add student"}</Button>
+          {editingId && <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>}
         </form>
         {students.length === 0 ? <p className="text-muted-foreground">No students yet.</p> : (
-          <table className="w-full text-sm"><thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Class</th><th>Student login</th><th>Parent</th></tr></thead>
-            <tbody>{students.map((s) => <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td><td>{s.class_name}</td><td>{userName(s.student_user_id)}</td><td>{userName(s.guardian_user_id)}</td></tr>)}</tbody></table>
+          <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Class</th><th>Student login</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{students.map((s) => <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td><td>{s.class_name}</td><td>{userName(s.student_user_id)}</td><td>{userName(s.guardian_user_id)}</td><td>{s.active ? "Active" : "Inactive"}</td><td className="whitespace-nowrap"><Button variant="link" onClick={() => setEditingId(s.id)} aria-label={`Edit ${s.full_name}`}>Edit</Button><Button variant="link" onClick={() => toggleActive(s.id, s.active)}>{s.active ? "Deactivate" : "Reactivate"}</Button></td></tr>)}</tbody></table></div>
         )}
       </Card>
 
-      <Card title="Fees & receipts">
+      {isAdmin && <Card title="Fees & receipts">
         <form onSubmit={addFee} className="mb-5 grid gap-3 md:grid-cols-6">
           <select name="student" required className={field} aria-label="Student"><option value="">Student…</option>{students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
           <input name="description" required placeholder="e.g. Term 1 tuition" className={field} aria-label="Fee description" />
@@ -180,7 +194,7 @@ function AdminArea() {
           <button className="btn-primary justify-center">Save fee</button>
         </form>
         <FeeTable fees={fees} onPay={markPaid} />
-      </Card>
+      </Card>}
     </>
   );
 }
