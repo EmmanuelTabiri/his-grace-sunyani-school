@@ -30,6 +30,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 activeProps={{ className: "bg-accent !text-foreground" }}>{n.label}</Link>
             ))}
           </nav>
+          <Link to="/portal" className="btn-sun !py-2 !px-4 hidden sm:inline-flex">Portal login</Link>
           <button className="lg:hidden" aria-label="Toggle menu" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
         </div>
         {open && (
@@ -37,6 +38,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             {nav.map((n) => (
               <Link key={n.to} to={n.to} onClick={() => setOpen(false)} className="py-2 font-semibold">{n.label}</Link>
             ))}
+            <Link to="/portal" className="py-2 font-bold text-primary">Portal login</Link>
           </nav>
         )}
       </header>
@@ -51,7 +53,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div>
             <p className="font-bold text-secondary">Quick links</p>
             <ul className="mt-3 space-y-1 text-sm opacity-90">
-              {nav.slice(1).map((n) => <li key={n.to}><Link to={n.to}>{n.label}</Link></li>)}
+              {nav.slice(1).map((n) => <li key={n.to}><a href={n.to}>{n.label}</a></li>)}
             </ul>
           </div>
           <div className="space-y-2 text-sm opacity-90">
