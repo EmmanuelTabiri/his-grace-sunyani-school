@@ -93,13 +93,13 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
   const collected = fees.filter((f) => f.status === "paid").reduce((s, f) => s + Number(f.amount), 0);
   const refresh = () => qc.invalidateQueries();
 
-  async function toggleRole(userId: string, role: Role, has: boolean) {
-    const target = profiles.find((p) => p.id === userId);
-    if (!target || !canChangeRole(roles, target.roles, role, false)) return;
+  async function toggleRole(targetUserId: string, role: Role, has: boolean) {
+    const target = profiles.find((p) => p.id === targetUserId);
+    if (!target || !canChangeRole(roles, target.roles, role, targetUserId === userId)) return;
     if (has && !confirm(`Remove ${role} access?`)) return;
     const { error } = has
-      ? await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role)
-      : await supabase.from("user_roles").insert({ user_id: userId, role });
+      ? await supabase.from("user_roles").delete().eq("user_id", targetUserId).eq("role", role)
+      : await supabase.from("user_roles").insert({ user_id: targetUserId, role });
     if (error) toast.error(error.message); else { toast.success("Access updated"); refresh(); }
   }
 
