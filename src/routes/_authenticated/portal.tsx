@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
+import { StaffTools, FamilyLearning } from "@/components/portal/Classroom";
 import type { Database } from "@/integrations/supabase/types";
 
 type Role = Database["public"]["Enums"]["app_role"];
@@ -47,7 +48,8 @@ function Portal() {
           <>
             {roles.includes("admin") && <AdminArea />}
             {roles.includes("teacher") && !roles.includes("admin") && <TeacherArea />}
-            {(roles.includes("student") || roles.includes("parent")) && <FamilyArea />}
+            {(roles.includes("admin") || roles.includes("teacher")) && <StaffTools userId={user.id} />}
+            {(roles.includes("student") || roles.includes("parent")) && <><FamilyLearning /><FamilyArea /></>}
           </>
         )}
       </main>
