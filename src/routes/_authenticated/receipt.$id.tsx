@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { school } from "@/lib/school";
 import { cedi } from "@/lib/money";
+import { meta } from "@/components/SiteLayout";
 
 export const Route = createFileRoute("/_authenticated/receipt/$id")({
-  head: () => ({ meta: [{ title: "Fee Receipt | His Grace Academy" }, { name: "robots", content: "noindex" }] }),
+  head: () => { const tags = meta("Fee Receipt", "View and print a paid school fee receipt from His Grace Academy."); return { ...tags, meta: [...tags.meta, { name: "robots", content: "noindex" }] }; },
   component: Receipt,
 });
 
