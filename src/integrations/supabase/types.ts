@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          author_id: string
+          body: string
+          class_name: string | null
+          created_at: string
+          id: string
+          title: string
+        }
+        Insert: {
+          author_id?: string
+          body: string
+          class_name?: string | null
+          created_at?: string
+          id?: string
+          title: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          class_name?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       fees: {
         Row: {
           amount: number
@@ -51,6 +78,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fees_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homework: {
+        Row: {
+          class_name: string
+          created_at: string
+          due_date: string
+          id: string
+          instructions: string
+          published: boolean
+          subject: string
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string
+          due_date: string
+          id?: string
+          instructions?: string
+          published?: boolean
+          subject: string
+          teacher_id?: string
+          title: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          instructions?: string
+          published?: boolean
+          subject?: string
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      marks: {
+        Row: {
+          assessment: string
+          comment: string | null
+          created_at: string
+          id: string
+          max_score: number
+          published: boolean
+          score: number
+          student_id: string
+          subject: string
+          teacher_id: string
+          term: string
+        }
+        Insert: {
+          assessment: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          max_score?: number
+          published?: boolean
+          score: number
+          student_id: string
+          subject: string
+          teacher_id?: string
+          term: string
+        }
+        Update: {
+          assessment?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          max_score?: number
+          published?: boolean
+          score?: number
+          student_id?: string
+          subject?: string
+          teacher_id?: string
+          term?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marks_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
@@ -140,6 +253,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      in_my_class: { Args: { _class: string }; Returns: boolean }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "teacher" | "student" | "parent"
