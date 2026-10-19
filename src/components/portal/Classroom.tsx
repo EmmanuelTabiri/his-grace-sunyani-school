@@ -17,7 +17,8 @@ function useData() {
   const marks = useQuery({ queryKey: ["marks"], queryFn: async () => (await supabase.from("marks").select("*, students(full_name, class_name)").order("created_at", { ascending: false })).data ?? [] });
   const homework = useQuery({ queryKey: ["homework"], queryFn: async () => (await supabase.from("homework").select("*").order("due_date")).data ?? [] });
   const news = useQuery({ queryKey: ["announcements"], queryFn: async () => (await supabase.from("announcements").select("*").order("created_at", { ascending: false })).data ?? [] });
-  return { students: students.data ?? [], marks: marks.data ?? [], homework: homework.data ?? [], news: news.data ?? [] };
+  const diary = useQuery({ queryKey: ["diary"], queryFn: async () => (await supabase.from("diary_entries").select("*").order("entry_date", { ascending: false })).data ?? [] });
+  return { students: students.data ?? [], marks: marks.data ?? [], homework: homework.data ?? [], news: news.data ?? [], diary: diary.data ?? [] };
 }
 
 export function StaffTools({ userId }: { userId: string }) {
