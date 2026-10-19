@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      diary_entries: {
+        Row: {
+          class_name: string
+          created_at: string
+          entry_date: string
+          id: string
+          teacher_id: string
+          topics: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          teacher_id?: string
+          topics: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          teacher_id?: string
+          topics?: string
+        }
+        Relationships: []
+      }
       fees: {
         Row: {
           amount: number
