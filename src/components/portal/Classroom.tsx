@@ -17,12 +17,13 @@ function useData() {
   const marks = useQuery({ queryKey: ["marks"], queryFn: async () => (await supabase.from("marks").select("*, students(full_name, class_name)").order("created_at", { ascending: false })).data ?? [] });
   const homework = useQuery({ queryKey: ["homework"], queryFn: async () => (await supabase.from("homework").select("*").order("due_date")).data ?? [] });
   const news = useQuery({ queryKey: ["announcements"], queryFn: async () => (await supabase.from("announcements").select("*").order("created_at", { ascending: false })).data ?? [] });
-  return { students: students.data ?? [], marks: marks.data ?? [], homework: homework.data ?? [], news: news.data ?? [] };
+  const diary = useQuery({ queryKey: ["diary"], queryFn: async () => (await supabase.from("diary_entries").select("*").order("entry_date", { ascending: false })).data ?? [] });
+  return { students: students.data ?? [], marks: marks.data ?? [], homework: homework.data ?? [], news: news.data ?? [], diary: diary.data ?? [] };
 }
 
 export function StaffTools({ userId }: { userId: string }) {
   const qc = useQueryClient();
-  const { students, marks, homework, news } = useData();
+  const { students, marks, homework, news, diary } = useData();
   const classes = [...new Set(students.map((s) => s.class_name).filter(Boolean))].sort();
   const [klass, setKlass] = useState("");
   const refresh = () => qc.invalidateQueries();
@@ -60,11 +61,19 @@ export function StaffTools({ userId }: { userId: string }) {
     });
     done(error, "Announcement posted", form);
   }
+  async function addDiary(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget; const f = new FormData(form);
+    const { error } = await supabase.from("diary_entries").upsert({
+      class_name: String(f.get("class")), entry_date: String(f.get("date")), topics: String(f.get("topics")), teacher_id: userId,
+    }, { onConflict: "class_name,entry_date,teacher_id" });
+    done(error, "Diary entry saved", form);
+  }
   async function togglePublish(table: "marks" | "homework", id: string, published: boolean) {
     const { error } = await supabase.from(table).update({ published: !published }).eq("id", id);
     done(error, published ? "Moved back to draft" : "Published");
   }
-  async function remove(table: "marks" | "homework" | "announcements", id: string) {
+  async function remove(table: "marks" | "homework" | "announcements" | "diary_entries", id: string) {
     if (!confirm("Delete this item? This cannot be undone.")) return;
     const { error } = await supabase.from(table).delete().eq("id", id);
     done(error, "Deleted");
@@ -74,6 +83,23 @@ export function StaffTools({ userId }: { userId: string }) {
 
   return (
     <>
+      <Card title="Daily class diary">
+        <p className="mb-4 text-sm text-muted-foreground">Summarise the topics studied each day — parents and students in the class can read it. Saving again for the same class and day updates the entry.</p>
+        <form onSubmit={addDiary} className="mb-5 grid gap-3 md:grid-cols-4">
+          <select name="class" required className={field} aria-label="Class"><option value="">Class…</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
+          <input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={field} aria-label="Date" />
+          <textarea name="topics" required rows={2} placeholder="Topics studied today e.g. Mathematics: fractions; English: comprehension…" className={`${field} md:col-span-2`} aria-label="Topics studied" />
+          <button className="btn-primary justify-center md:col-start-4">Save diary entry</button>
+        </form>
+        {diary.length === 0 ? <p className="text-muted-foreground">No diary entries yet.</p> : (
+          <ul className="space-y-2">{diary.map((d) => (
+            <li key={d.id} className="flex flex-wrap items-start justify-between gap-2 rounded-xl border p-3">
+              <div><p className="font-bold">{d.class_name} <span className="font-normal text-muted-foreground">· {d.entry_date}</span></p>
+                <p className="mt-1 whitespace-pre-line text-sm">{d.topics}</p></div>
+              {d.teacher_id === userId && <button onClick={() => remove("diary_entries", d.id)} className="text-sm font-bold text-destructive">Delete</button>}
+            </li>))}</ul>
+        )}
+      </Card>
       <Card title="Record marks">
         <form onSubmit={addMark} className="mb-5 grid gap-3 md:grid-cols-4">
           <select value={klass} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Filter by class"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
@@ -150,9 +176,18 @@ function NewsList({ items, onDelete, userId }: { items: News[]; onDelete?: (id: 
 }
 
 export function FamilyLearning() {
-  const { marks, homework, news } = useData();
+  const { marks, homework, news, diary } = useData();
   return (
     <>
+      <Card title="Daily class diary">
+        {diary.length === 0 ? <p className="text-muted-foreground">No diary entries yet.</p> : (
+          <ul className="space-y-2">{diary.map((d) => (
+            <li key={d.id} className="rounded-xl border p-4">
+              <p className="font-bold">{d.class_name} <span className="font-normal text-muted-foreground">· {new Date(d.entry_date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></p>
+              <p className="mt-1 whitespace-pre-line text-sm">{d.topics}</p>
+            </li>))}</ul>
+        )}
+      </Card>
       <Card title="Announcements"><NewsList items={news} /></Card>
       <Card title="Homework">
         {homework.length === 0 ? <p className="text-muted-foreground">No homework right now.</p> : (

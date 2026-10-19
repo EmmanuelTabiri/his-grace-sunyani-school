@@ -29,6 +29,13 @@
       "when": 1792366530365,
       "tag": "0003_head_teacher_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792368216856,
+      "tag": "0004_create_diary",
+      "breakpoints": true
     }
   ]
 }
