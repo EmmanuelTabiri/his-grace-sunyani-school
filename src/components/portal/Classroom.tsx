@@ -61,6 +61,14 @@ export function StaffTools({ userId }: { userId: string }) {
     });
     done(error, "Announcement posted", form);
   }
+  async function addDiary(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget; const f = new FormData(form);
+    const { error } = await supabase.from("diary_entries").upsert({
+      class_name: String(f.get("class")), entry_date: String(f.get("date")), topics: String(f.get("topics")), teacher_id: userId,
+    }, { onConflict: "class_name,entry_date,teacher_id" });
+    done(error, "Diary entry saved", form);
+  }
   async function togglePublish(table: "marks" | "homework", id: string, published: boolean) {
     const { error } = await supabase.from(table).update({ published: !published }).eq("id", id);
     done(error, published ? "Moved back to draft" : "Published");
