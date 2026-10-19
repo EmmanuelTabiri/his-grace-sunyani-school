@@ -23,7 +23,7 @@ function useData() {
 
 export function StaffTools({ userId }: { userId: string }) {
   const qc = useQueryClient();
-  const { students, marks, homework, news } = useData();
+  const { students, marks, homework, news, diary } = useData();
   const classes = [...new Set(students.map((s) => s.class_name).filter(Boolean))].sort();
   const [klass, setKlass] = useState("");
   const refresh = () => qc.invalidateQueries();
