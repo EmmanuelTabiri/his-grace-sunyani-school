@@ -176,9 +176,18 @@ function NewsList({ items, onDelete, userId }: { items: News[]; onDelete?: (id: 
 }
 
 export function FamilyLearning() {
-  const { marks, homework, news } = useData();
+  const { marks, homework, news, diary } = useData();
   return (
     <>
+      <Card title="Daily class diary">
+        {diary.length === 0 ? <p className="text-muted-foreground">No diary entries yet.</p> : (
+          <ul className="space-y-2">{diary.map((d) => (
+            <li key={d.id} className="rounded-xl border p-4">
+              <p className="font-bold">{d.class_name} <span className="font-normal text-muted-foreground">· {new Date(d.entry_date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></p>
+              <p className="mt-1 whitespace-pre-line text-sm">{d.topics}</p>
+            </li>))}</ul>
+        )}
+      </Card>
       <Card title="Announcements"><NewsList items={news} /></Card>
       <Card title="Homework">
         {homework.length === 0 ? <p className="text-muted-foreground">No homework right now.</p> : (
