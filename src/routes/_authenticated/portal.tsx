@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import logo from "@/assets/school-logo.png.asset.json";
 import { Bell, BookOpen, CalendarDays, ClipboardList, GraduationCap, LayoutDashboard, Megaphone, Menu, NotebookPen, Receipt, School, Table2, UserCog, Users, FileSpreadsheet, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
@@ -64,7 +65,7 @@ function Portal() {
   );
   const brand = (
     <Link to="/" className="flex items-center gap-2">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary font-display font-extrabold text-secondary-foreground">HG</span>
+      <img src={logo.url} alt="His Grace Academy logo" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-background object-contain" />
       <span className="min-w-0 leading-tight"><span className="block truncate font-display font-extrabold">His Grace Academy</span><span className="block text-xs opacity-75">School year {schoolYear()}</span></span>
     </Link>
   );
