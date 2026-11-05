@@ -310,3 +310,51 @@ export function FamilyLearning({ show, student }: { show: string; student: { id:
     </>
   );
 }
+
+export function Gradebook({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const { students, marks } = useData();
+  const { data: assigned = [] } = useQuery({ queryKey: ["assignments", userId], queryFn: async () => (await supabase.from("teacher_assignments").select("*").eq("teacher_id", userId)).data ?? [] });
+  const classes = [...new Set([...assigned.map((a) => a.class_name), ...students.map((s) => s.class_name)].filter(Boolean))].sort();
+  const [klass, setKlass] = useState(""); const [subject, setSubject] = useState(""); const [term, setTerm] = useState("Term 1");
+  const c = klass || classes[0] || "";
+  const subjects = [...new Set([...assigned.filter((a) => a.class_name === c).map((a) => a.subject), ...marks.filter((m) => m.students?.class_name === c).map((m) => m.subject)])].sort();
+  const subj = subject && subjects.includes(subject) ? subject : subjects[0] ?? "";
+  const rows = students.filter((s) => s.class_name === c && s.active);
+  const cells = marks.filter((m) => m.students?.class_name === c && m.subject === subj && m.term === term);
+  const cols = [...new Set(cells.map((m) => m.assessment))];
+  const drafts = cells.filter((m) => !m.published && m.teacher_id === userId);
+  async function publishAll() {
+    if (!drafts.length) return;
+    if (!confirm(`Publish ${drafts.length} draft mark${drafts.length > 1 ? "s" : ""} for ${c} · ${subj} · ${term}? Students and parents will see them straight away.`)) return;
+    const { error } = await supabase.from("marks").update({ published: true }).in("id", drafts.map((d) => d.id));
+    if (error) toast.error(error.message); else { toast.success("Results published"); qc.invalidateQueries({ queryKey: ["marks"] }); }
+  }
+  return (
+    <Card title="Gradebook">
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <select value={c} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Gradebook class">{classes.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={subj} onChange={(e) => setSubject(e.target.value)} className={field} aria-label="Gradebook subject">{subjects.length === 0 && <option value="">No subjects yet</option>}{subjects.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={term} onChange={(e) => setTerm(e.target.value)} className={field} aria-label="Gradebook term"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
+        <button onClick={publishAll} disabled={!drafts.length} className="btn-primary justify-center disabled:opacity-50">Publish results ({drafts.length})</button>
+      </div>
+      <p className="mb-3 flex flex-wrap gap-3 text-xs"><Badge on yes="Published" no="" /> visible to families <Badge on={false} yes="" no="Draft" /> only staff can see</p>
+      {rows.length === 0 ? <p className="text-muted-foreground">No students in this class yet.</p> : cols.length === 0 ? <p className="text-muted-foreground">No marks for this subject and term yet. Add them under Marks.</p> : (
+        <div className="overflow-x-auto"><table className="w-full text-sm">
+          <thead><tr className="text-left text-muted-foreground"><th className="py-2">Student</th>{cols.map((a) => <th key={a}>{a}</th>)}</tr></thead>
+          <tbody>{rows.map((s) => (
+            <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td>
+              {cols.map((a) => { const m = cells.find((x) => x.student_id === s.id && x.assessment === a); return (
+                <td key={a}>{m ? <span className={m.published ? "rounded-lg bg-primary/10 px-2 py-1 font-bold text-primary" : "rounded-lg border border-dashed px-2 py-1 italic text-muted-foreground"} title={m.published ? "Published" : "Draft"}>{Number(m.score)}/{Number(m.max_score)}{!m.published && " · draft"}</span> : <span className="text-muted-foreground">—</span>}</td>
+              ); })}</tr>))}</tbody>
+        </table></div>
+      )}
+    </Card>
+  );
+}
+
+export function DraftCount({ userId }: { userId: string }) {
+  const { marks } = useData();
+  const n = marks.filter((m) => !m.published && m.teacher_id === userId).length;
+  return <>{n}</>;
+}
