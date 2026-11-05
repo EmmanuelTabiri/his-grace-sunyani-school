@@ -1,31 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { SiteLayout, PageHeader, meta } from "@/components/SiteLayout";
-
-export const Route = createFileRoute("/admissions")({
-  head: () => meta("Admissions", "How to apply to His Grace Academy: process, requirements and key dates."),
-  component: Admissions,
-});
-
-const steps = ["Visit or contact the school office", "Collect and complete the admission form", "Child sits a short placement assessment", "Meet the headteacher", "Pay admission fees and receive your welcome pack"];
-const reqs = ["Birth certificate (copy)", "Two passport photographs", "Previous school report (if any)", "Child health / immunisation record", "Parent or guardian Ghana Card (copy)"];
-const dates = [["Applications open", "Jan 6, 2027"], ["Placement assessments", "Every Saturday in March"], ["Term 1 begins", "Sep 8, 2027"]];
-
-function Admissions() {
-  return (
-    <SiteLayout>
-      <PageHeader eyebrow="Admissions" title="Join the His Grace family" intro="We welcome learners from Crèche to Junior High School." />
-      <section className="container-page grid gap-10 py-16 lg:grid-cols-2">
-        <div><h2 className="text-2xl font-extrabold">Admission process</h2>
-          <ol className="mt-5 space-y-3">{steps.map((s, i) => (
-            <li key={s} className="flex items-center gap-4 rounded-xl border bg-card p-4"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary font-extrabold">{i + 1}</span>{s}</li>))}</ol></div>
-        <div className="space-y-10">
-          <div><h2 className="text-2xl font-extrabold">Requirements</h2>
-            <ul className="mt-4 list-disc space-y-1 pl-5 text-muted-foreground">{reqs.map((r) => <li key={r}>{r}</li>)}</ul></div>
-          <div><h2 className="text-2xl font-extrabold">Important dates</h2>
-            <dl className="mt-4 divide-y rounded-xl border bg-card">{dates.map(([k, v]) => <div key={k} className="flex justify-between p-4"><dt>{k}</dt><dd className="font-bold">{v}</dd></div>)}</dl></div>
-          <Link to="/contact" className="btn-primary">Make an enquiry</Link>
-        </div>
-      </section>
-    </SiteLayout>
-  );
-}
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { ArrowRight, CalendarDays, FileText } from 'lucide-react';
+import { SiteLayout, PageHeader, AdmissionsCTA, meta } from '@/components/SiteLayout';
+import { Button } from '@/components/ui/button';
+export const Route = createFileRoute('/admissions')({head:()=>meta('Admissions','Enquire about joining His Grace Academy in Penkwase, Sunyani. Ask about available classes, requirements and confirmed admission dates.'),component:Admissions});
+const steps=[{title:'Start a conversation',text:'Tell the school about your child and the class you are interested in.'},{title:'Confirm the details',text:'Ask about available places, required documents, fees and key dates.'},{title:'Plan your next step',text:'Arrange a visit and follow the application guidance provided by the school.'}];
+function Admissions(){return <SiteLayout><PageHeader eyebrow="Admissions" title="A new beginning starts here." intro="We’re here to help you explore your child’s next chapter at His Grace Academy."/><section className="container-page grid gap-14 py-16 lg:grid-cols-[1.3fr_1fr]"><div><span className="public-eyebrow">Getting started</span><h2 className="mt-3 text-3xl">Your enquiry, step by step.</h2><ol className="mt-8 divide-y border-y">{steps.map((s,i)=><li key={s.title} className="flex gap-5 py-7"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary font-bold">{i+1}</span><div><h3 className="text-xl">{s.title}</h3><p className="mt-3 leading-relaxed text-muted-foreground">{s.text}</p></div></li>)}</ol></div><div className="space-y-9 lg:pt-9"><div><FileText className="text-primary"/><h2 className="mt-4 text-2xl">Application requirements</h2><p className="mt-4 leading-relaxed text-muted-foreground">The official document checklist and admission fees are awaiting confirmation. Please enquire before preparing an application.</p></div><div className="border-t pt-8"><CalendarDays className="text-primary"/><h2 className="mt-4 text-2xl">Key dates</h2><p className="mt-4 text-muted-foreground">No admission dates have been confirmed for publication yet.</p></div><Button asChild variant="secondary" className="h-12 px-6"><Link to="/contact">Explore admission with us<ArrowRight/></Link></Button></div></section><AdmissionsCTA/></SiteLayout>}

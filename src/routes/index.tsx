@@ -1,103 +1,29 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, Users, Trophy, Laptop, CalendarDays, ArrowRight } from "lucide-react";
-import { SiteLayout, Crest, meta } from "@/components/SiteLayout";
-import { school, news, events } from "@/lib/school";
-import hero from "@/assets/classroom.jpg";
-import sports from "@/assets/sports.jpg";
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Suspense } from 'react';
+import { ArrowRight, BookOpen, HeartHandshake, ClipboardList, Trees } from 'lucide-react';
+import { SiteLayout, AdmissionsCTA, meta } from '@/components/SiteLayout';
+import { Button } from '@/components/ui/button';
+import { PublicEvents } from '@/components/PublicEvents';
+import { learningStages, schoolImages } from '@/lib/public-content';
+import hero from '@/assets/school-welcome.jpg';
 
-export const Route = createFileRoute("/")({
-  head: () => meta("Welcome", "His Grace Academy in Penkwase, Sunyani — nurturing young minds with grace, knowledge and excellence."),
-  component: Home,
-});
-
+export const Route = createFileRoute('/')({head:()=>meta('Welcome to His Grace Academy','Discover His Grace Academy in Penkwase, Sunyani. Explore learning, school life and admissions, or contact the school.'),component:Home});
 const highlights = [
-  { icon: BookOpen, t: "Strong academics", d: "GES curriculum taught by dedicated, qualified teachers." },
-  { icon: Users, t: "Small classes", d: "Personal attention for every child." },
-  { icon: Laptop, t: "ICT & science", d: "Modern computer lab and hands-on science." },
-  { icon: Trophy, t: "Sports & arts", d: "Football, athletics, music and cultural dance." },
-];
-
-function Home() {
-  return (
-    <SiteLayout>
-      <section className="relative overflow-hidden bg-navy text-navy-foreground">
-        <div className="container-page grid items-center gap-10 py-16 md:grid-cols-2 md:py-24">
-          <div>
-            <Crest className="h-20 w-20" />
-            <span className="eyebrow mt-5 block !text-secondary">Penkwase · Sunyani</span>
-            <h1 className="mt-3 text-5xl font-extrabold leading-tight md:text-6xl">
-              Where every child <span className="text-secondary">shines</span>.
-            </h1>
-            <p className="mt-5 max-w-md text-lg opacity-85">
-              Welcome to {school.name}. We nurture curious, confident and caring learners rooted in faith and excellence.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/admissions" className="btn-sun">Apply for admission <ArrowRight size={18} /></Link>
-              <Link to="/contact" className="inline-flex items-center rounded-full border border-navy-foreground/40 px-5 py-3 font-bold">Visit us</Link>
-            </div>
-          </div>
-          <div className="relative">
-            <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-secondary" aria-hidden />
-            <img src={hero} alt="Pupils raising their hands in a bright classroom" width={1200} height={912} className="relative rounded-2xl shadow-2xl" />
-          </div>
-        </div>
-      </section>
-
-      <section className="container-page py-16">
-        <span className="eyebrow">Why families choose us</span>
-        <h2 className="mt-2 text-3xl font-extrabold">A school that feels like family</h2>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {highlights.map((h) => (
-            <div key={h.t} className="rounded-2xl border bg-card p-6">
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-primary"><h.icon size={22} /></span>
-              <h3 className="mt-4 text-lg font-bold">{h.t}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{h.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="bg-accent">
-        <div className="container-page grid items-center gap-10 py-16 md:grid-cols-2">
-          <img src={sports} alt="Pupils playing football on the school field" loading="lazy" width={1200} height={912} className="rounded-2xl" />
-          <div>
-            <span className="eyebrow">A word from our head</span>
-            <blockquote className="mt-3 font-display text-2xl font-semibold leading-snug">
-              “Our goal is simple: to help every child discover their gifts and grow in character, knowledge and grace.”
-            </blockquote>
-            <p className="mt-4 font-bold">— The Headteacher</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="container-page grid gap-10 py-16 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="flex items-end justify-between">
-            <h2 className="text-3xl font-extrabold">Latest news</h2>
-            <Link to="/news" className="font-bold text-primary">All news →</Link>
-          </div>
-          <div className="mt-6 space-y-4">
-            {news.map((n) => (
-              <article key={n.title} className="rounded-2xl border bg-card p-5">
-                <p className="text-xs font-bold text-muted-foreground">{n.date}</p>
-                <h3 className="mt-1 text-lg font-bold">{n.title}</h3>
-                <p className="text-sm text-muted-foreground">{n.body}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h2 className="text-3xl font-extrabold">Upcoming</h2>
-          <ul className="mt-6 space-y-3">
-            {events.map((e) => (
-              <li key={e.title} className="flex gap-4 rounded-2xl bg-navy p-4 text-navy-foreground">
-                <CalendarDays className="text-secondary" />
-                <div><p className="font-bold">{e.title}</p><p className="text-sm opacity-80">{e.date} · {e.place}</p></div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-    </SiteLayout>
-  );
-}
+  {icon:BookOpen,title:'Learning & academics',text:'Explore learning stages and ask about subject choices.',to:'/academics'},
+  {icon:Trees,title:'Our school environment',text:'Connect with the school to learn about its facilities.',to:'/about'},
+  {icon:HeartHandshake,title:'School & home, connected',text:'Families can follow published marks, homework and daily diaries.',to:'/portal'},
+  {icon:ClipboardList,title:'Beyond the classroom',text:'Find school events and enquire about activities.',to:'/news'},
+] as const;
+function Home() { return <SiteLayout>
+  <section className="public-hero relative flex items-center overflow-hidden bg-navy text-navy-foreground">
+    <img src={hero} alt="Illustrative photograph of a Ghanaian teacher helping pupils with their work" width={1920} height={1088} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-center"/><div className="hero-shade absolute inset-0"/>
+    <div className="container-page relative py-16"><div className="max-w-xl"><span className="public-eyebrow">Welcome to our school · Penkwase, Sunyani</span><h1 className="mt-5">His Grace<br/>Academy<span className="text-secondary">.</span></h1><p className="mt-6 max-w-md text-lg leading-relaxed text-navy-foreground/90">A new chapter in your child’s learning starts with a conversation. We’re glad you’re here.</p><div className="mt-8 flex flex-wrap gap-3"><Button asChild variant="secondary" className="h-12 px-6"><Link to="/admissions">Explore Admissions<ArrowRight/></Link></Button><Button asChild variant="ghost" className="h-12 border border-navy-foreground/60 px-6 text-navy-foreground hover:bg-navy-foreground/10 hover:text-navy-foreground"><Link to="/contact">Contact the School</Link></Button></div></div></div><span className="absolute bottom-4 right-5 text-[10px] text-navy-foreground/80">Illustrative school imagery</span>
+  </section>
+  <section className="container-page py-14 md:py-20"><div className="grid gap-7 md:grid-cols-[1fr_1fr]"><div><span className="public-eyebrow">A school. A community. A shared journey.</span><h2 className="mt-4 text-3xl leading-tight md:text-4xl">Welcome to His Grace Academy,<br/>right here in Sunyani.</h2></div><div className="md:pt-6"><p className="leading-relaxed text-muted-foreground">His Grace Academy is located in Penkwase, Sunyani, Ghana. This is a place for families to connect with the school, explore admissions and stay close to their child’s learning.</p><Button asChild variant="link" className="mt-4 px-0"><Link to="/about">Get to know our school<ArrowRight/></Link></Button></div></div>
+    <div className="mt-12 grid gap-8 border-t pt-9 sm:grid-cols-2 lg:grid-cols-4">{highlights.map(h=><div key={h.title}><h.icon size={27} className="text-primary"/><h3 className="mt-4 text-xl">{h.title}</h3><p className="mt-3 text-sm leading-relaxed text-muted-foreground">{h.text}</p><Link to={h.to} className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-primary">Discover more<ArrowRight size={14}/></Link></div>)}</div>
+  </section>
+  <section className="bg-muted"><div className="container-page py-16"><span className="public-eyebrow">Growing, one step at a time</span><div className="mt-3 flex flex-wrap items-end justify-between gap-4"><h2 className="text-3xl md:text-4xl">Find the next stage of learning.</h2><Button asChild variant="link" className="px-0"><Link to="/academics">Explore academics<ArrowRight/></Link></Button></div><div className="mt-9 grid gap-6 md:grid-cols-3">{learningStages.map(l=><Link key={l.title} to="/academics" className="group rounded-lg border bg-card p-7"><span className="text-sm font-semibold text-muted-foreground">{l.number}</span><h3 className="mt-6 text-2xl">{l.title}</h3><p className="mt-3 text-sm leading-relaxed text-muted-foreground">{l.detail}</p><ArrowRight className="mt-5 text-primary" size={22}/></Link>)}</div></div></section>
+  <section className="container-page py-16 md:py-20"><div className="flex flex-wrap items-end justify-between gap-4"><div><span className="public-eyebrow">Learning, discovery & togetherness</span><h2 className="mt-3 text-3xl md:text-4xl">A glimpse of school life.</h2></div><Button asChild variant="link" className="px-0"><Link to="/gallery">Visit the gallery<ArrowRight/></Link></Button></div><div className="mt-8 grid gap-5 md:grid-cols-3">{schoolImages.map(p=><figure key={p.category}><Link to="/gallery"><img src={p.src} alt={p.alt} width={1200} height={912} loading="lazy" className="public-photo aspect-[4/3] w-full object-cover"/></Link><figcaption className="mt-4 text-lg font-semibold">{p.caption}</figcaption></figure>)}</div><p className="mt-5 text-xs text-muted-foreground">Illustrative imagery. Photographs from His Grace Academy will be added when supplied.</p></section>
+  <section className="container-page grid gap-12 border-t py-16 md:grid-cols-2"><div><span className="public-eyebrow">Stay connected</span><h2 className="mt-3 text-3xl">Latest school news</h2><p className="mt-6 leading-relaxed text-muted-foreground">School news will appear here when confirmed. Current families can find announcements in their private portal.</p><Button asChild variant="link" className="mt-5 px-0"><Link to="/news">News & Events<ArrowRight/></Link></Button></div><div><h2 className="mb-6 text-3xl">Upcoming events</h2><Suspense fallback={<p role="status">Loading events…</p>}><PublicEvents compact/></Suspense></div></section>
+  <AdmissionsCTA/>
+</SiteLayout>; }

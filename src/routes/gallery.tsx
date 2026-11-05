@@ -1,32 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SiteLayout, PageHeader, meta } from "@/components/SiteLayout";
-import classroom from "@/assets/classroom.jpg";
-import sports from "@/assets/sports.jpg";
-import science from "@/assets/science.jpg";
-
-export const Route = createFileRoute("/gallery")({
-  head: () => meta("Gallery", "Photos of school life at His Grace Academy — classrooms, science, sports and more."),
-  component: Gallery,
-});
-
-const photos = [
-  { src: classroom, cat: "Classroom", cap: "Social Studies lesson", alt: "Pupils raising their hands while a teacher stands at the whiteboard" },
-  { src: science, cat: "Science", cap: "JHS chemistry practical", alt: "Students examining coloured liquids in test tubes beside a microscope" },
-  { src: sports, cat: "Sports", cap: "Inter-house football", alt: "Pupils in blue and yellow jerseys chasing a football at sunset" },
-];
-
-function Gallery() {
-  return (
-    <SiteLayout>
-      <PageHeader eyebrow="Gallery" title="Life at His Grace" />
-      <section className="container-page grid gap-6 py-16 sm:grid-cols-2 lg:grid-cols-3">
-        {photos.map((p) => (
-          <figure key={p.cap} className="overflow-hidden rounded-2xl border bg-card">
-            <img src={p.src} alt={p.alt} loading="lazy" width={1200} height={912} className="aspect-[4/3] w-full object-cover" />
-            <figcaption className="p-4"><span className="eyebrow">{p.cat}</span><p className="font-bold">{p.cap}</p></figcaption>
-          </figure>
-        ))}
-      </section>
-    </SiteLayout>
-  );
-}
+import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
+import { Expand, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SiteLayout, PageHeader, AdmissionsCTA, meta } from '@/components/SiteLayout';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { schoolImages } from '@/lib/public-content';
+export const Route=createFileRoute('/gallery')({head:()=>meta('School gallery','Explore illustrative learning, discovery and school-life imagery for His Grace Academy, Penkwase, Sunyani.'),component:Gallery});
+function Gallery(){const [selected,setSelected]=useState<number|null>(null);const photo=selected===null?null:schoolImages[selected];return <SiteLayout><PageHeader eyebrow="Gallery" title="Learning. Discovery. Togetherness." intro="A visual glimpse of the school journey. These images are illustrative; actual school photographs are awaiting supply."/><section className="container-page py-16"><div className="grid gap-7 md:grid-cols-3">{schoolImages.map((p,i)=><figure key={p.category}><Button variant="ghost" className="group relative block h-auto w-full overflow-hidden rounded-lg p-0" aria-label={`Enlarge ${p.caption}`} onClick={()=>setSelected(i)}><img src={p.src} alt={p.alt} loading="lazy" width={1200} height={912} className="aspect-[4/3] w-full object-cover"/><span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-md bg-background text-primary"><Expand size={18}/></span></Button><figcaption className="mt-5"><span className="public-eyebrow">{p.category}</span><h2 className="mt-2 text-xl">{p.caption}</h2></figcaption></figure>)}</div></section><Dialog open={photo!==null} onOpenChange={open=>{if(!open)setSelected(null)}}><DialogContent className="public-site max-w-4xl"><DialogTitle>{photo?.caption}</DialogTitle><DialogDescription>Illustrative school imagery, not a photograph of His Grace Academy.</DialogDescription>{photo&&<img src={photo.src} alt={photo.alt} width={1200} height={912} className="max-h-[65vh] w-full rounded-md object-contain"/>}<div className="flex items-center justify-between"><Button variant="outline" size="icon" aria-label="Previous image" onClick={()=>setSelected(i=>((i??0)+schoolImages.length-1)%schoolImages.length)}><ChevronLeft/></Button><span className="text-sm text-muted-foreground">{(selected??0)+1} / {schoolImages.length}</span><Button variant="outline" size="icon" aria-label="Next image" onClick={()=>setSelected(i=>((i??0)+1)%schoolImages.length)}><ChevronRight/></Button></div></DialogContent></Dialog><AdmissionsCTA/></SiteLayout>}

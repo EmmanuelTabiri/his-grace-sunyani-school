@@ -1,56 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
-import { SiteLayout, PageHeader, meta } from "@/components/SiteLayout";
-import { school } from "@/lib/school";
-
-export const Route = createFileRoute("/contact")({
-  head: () => meta("Contact", "Contact His Grace Academy in Penkwase, Sunyani — address, phone, email and enquiry form."),
-  component: Contact,
-});
-
-function Contact() {
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-  function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const email = String(f.get("email") || "");
-    if (!f.get("name") || !/^\S+@\S+\.\S+$/.test(email) || !f.get("message")) {
-      setError("Please fill in your name, a valid email and a message.");
-      return;
-    }
-    setError("");
-    setSent(true);
-  }
-  const field = "mt-1 w-full rounded-xl border bg-card px-4 py-3";
-  return (
-    <SiteLayout>
-      <PageHeader eyebrow="Contact" title="We'd love to hear from you" />
-      <section className="container-page grid gap-10 py-16 lg:grid-cols-2">
-        <div className="space-y-4">
-          {[[MapPin, school.location], [Phone, school.phone], [Mail, school.email], [Clock, school.hours]].map(([I, t], i) => {
-            const Icon = I as typeof MapPin;
-            return <p key={i} className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full bg-secondary"><Icon size={18} /></span>{t as string}</p>;
-          })}
-          <div className="grid h-64 place-items-center rounded-2xl border-2 border-dashed bg-muted text-muted-foreground">Map coming soon</div>
-        </div>
-        <div className="rounded-2xl border bg-card p-6">
-          {sent ? (
-            <div role="status"><h2 className="text-2xl font-extrabold">Thank you!</h2><p className="mt-2 text-muted-foreground">Your message has been noted. Our office will get back to you soon.</p></div>
-          ) : (
-            <form onSubmit={submit} noValidate className="space-y-4">
-              <h2 className="text-2xl font-extrabold">Send an enquiry</h2>
-              <label className="block font-semibold">Full name<input name="name" className={field} /></label>
-              <label className="block font-semibold">Email<input name="email" type="email" className={field} /></label>
-              <label className="block font-semibold">Phone (optional)<input name="phone" className={field} /></label>
-              <label className="block font-semibold">Message<textarea name="message" rows={5} className={field} /></label>
-              {error && <p role="alert" className="text-sm font-semibold text-destructive">{error}</p>}
-              <button className="btn-primary">Send message</button>
-            </form>
-          )}
-        </div>
-      </section>
-    </SiteLayout>
-  );
-}
+import { createFileRoute } from '@tanstack/react-router';
+import { useState, type FormEvent } from 'react';
+import { MapPin, Phone, Mail, Clock, ArrowUpRight, CheckCircle2, Send, LoaderCircle } from 'lucide-react';
+import { SiteLayout, PageHeader, meta } from '@/components/SiteLayout';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { enquirySchema } from '@/lib/enquiry';
+export const Route=createFileRoute('/contact')({head:()=>meta('Contact & enquiries','Contact His Grace Academy in Penkwase, Sunyani. Send an admission enquiry or find the school’s confirmed location.'),component:Contact});
+function Contact(){const [sent,setSent]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);if(f.get('website'))return;const result=enquirySchema.safeParse({full_name:f.get('full_name'),email:f.get('email'),phone:f.get('phone'),message:f.get('message')});if(!result.success){setError(result.error.issues[0]?.message??'Please check your details.');return;}setBusy(true);setError('');try{const {error:saveError}=await supabase.from('contact_enquiries').insert(result.data);if(saveError)throw saveError;setSent(true);}catch{setError('Your enquiry could not be sent. Please try again.');}finally{setBusy(false);}}
+const field='mt-2 w-full rounded-md border bg-background px-4 py-3 font-normal focus:border-primary';
+return <SiteLayout><PageHeader eyebrow="Contact" title="Let’s start a conversation." intro="Questions about admissions or school life? We’d love to hear from you."/><section className="container-page grid gap-14 py-16 lg:grid-cols-2"><div><span className="public-eyebrow">Visit His Grace Academy</span><h2 className="mt-3 text-3xl">Find us in Penkwase, Sunyani.</h2><div className="mt-8 space-y-6">{[{icon:MapPin,label:'School location',value:'Penkwase, Sunyani, Bono Region, Ghana'},{icon:Phone,label:'Telephone',value:'Awaiting school confirmation'},{icon:Mail,label:'Email address',value:'Awaiting school confirmation'},{icon:Clock,label:'Office hours',value:'Awaiting school confirmation'}].map(d=><div key={d.label} className="flex gap-4"><d.icon size={21} className="mt-1 shrink-0 text-primary"/><div><p className="text-sm font-bold">{d.label}</p><p className="mt-1 text-muted-foreground">{d.value}</p></div></div>)}</div><div className="mt-9 border-y bg-muted px-6 py-8"><MapPin size={28} className="text-primary"/><h3 className="mt-4 text-xl">Penkwase · Sunyani · Ghana</h3><p className="mt-3 text-sm text-muted-foreground">The exact school map pin is awaiting confirmation.</p><Button asChild variant="link" className="mt-4 px-0"><a href="https://www.google.com/maps/search/?api=1&query=Penkwase%2C%20Sunyani%2C%20Ghana" target="_blank" rel="noopener noreferrer">View the Penkwase area<ArrowUpRight/></a></Button></div></div><div className="rounded-lg border bg-muted p-6 sm:p-8">{sent?<div role="status" className="py-12"><CheckCircle2 size={36} className="text-primary"/><h2 className="mt-5 text-3xl">Thank you for getting in touch.</h2><p className="mt-5 leading-relaxed text-muted-foreground">Your enquiry has been saved privately for the school administrator to review. No automatic email is sent.</p><Button variant="outline" className="mt-7" onClick={()=>setSent(false)}>Send another enquiry</Button></div>:<form onSubmit={submit} noValidate className="space-y-5"><h2 className="text-3xl">Send an enquiry</h2><p className="text-sm text-muted-foreground">Share a little about your child or your question.</p><label className="block text-sm font-bold">Full name<input name="full_name" required autoComplete="name" maxLength={120} className={field}/></label><label className="block text-sm font-bold">Email address<input name="email" type="email" required autoComplete="email" maxLength={254} className={field}/></label><label className="block text-sm font-bold">Phone number <span className="font-normal text-muted-foreground">(optional)</span><input name="phone" type="tel" autoComplete="tel" maxLength={40} className={field}/></label><label className="block text-sm font-bold">Your message<textarea name="message" required rows={5} maxLength={3000} className={field}/></label><div className="hidden" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off"/></label></div>{error&&<p role="alert" className="text-sm font-semibold text-destructive">{error}</p>}<Button type="submit" variant="secondary" disabled={busy} className="h-12 w-full">{busy?<LoaderCircle className="animate-spin"/>:<Send/>}{busy?'Sending enquiry…':'Send enquiry'}</Button><p className="text-xs leading-relaxed text-muted-foreground">Your details are shared privately with the school administrator, not displayed publicly.</p></form>}</div></section></SiteLayout>}

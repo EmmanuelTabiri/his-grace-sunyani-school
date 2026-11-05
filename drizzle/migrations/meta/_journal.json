@@ -50,6 +50,13 @@
       "when": 1793903933817,
       "tag": "0006_teacher_assignments_and_homework_files",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793906904220,
+      "tag": "0007_public_contact_enquiries",
+      "breakpoints": true
     }
   ]
 }
