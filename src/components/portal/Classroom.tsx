@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { dueStatus } from "@/lib/due";
 
 const field = "w-full rounded-xl border bg-background px-3 py-2";
 
@@ -257,23 +258,28 @@ export function FamilyLearning() {
       </Card>
       <Card title="Announcements"><NewsList items={news} /></Card>
       <Card title="Homework">
+        {homework.length > 0 && <p className="mb-3 text-sm"><span className="rounded-full bg-secondary px-2 py-0.5 font-bold text-secondary-foreground">{homework.filter((h) => dueStatus(h.due_date).tone === "soon").length} due in the next 3 days</span></p>}
         {homework.length === 0 ? <p className="text-muted-foreground">No homework right now.</p> : (
-          <ul className="space-y-2">{homework.map((h) => (
-            <li key={h.id} className="rounded-xl border p-4">
-              <p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p>
+          <ul className="space-y-2">{[...homework].sort((a, b) => { const r = (t: string) => (t === "soon" ? 0 : t === "later" ? 1 : 2); return r(dueStatus(a.due_date).tone) - r(dueStatus(b.due_date).tone) || a.due_date.localeCompare(b.due_date); }).map((h) => { const d = dueStatus(h.due_date); return (
+            <li key={h.id} className={d.tone === "soon" ? "rounded-xl border-2 border-secondary p-4" : d.tone === "overdue" ? "rounded-xl border p-4 opacity-70" : "rounded-xl border p-4"}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p>
+                <span className={d.tone === "soon" ? "rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground" : d.tone === "overdue" ? "rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground" : "rounded-full bg-muted px-2 py-0.5 text-xs font-bold"}>{d.label}</span>
+              </div>
               <p className="text-sm font-semibold text-primary">Due {h.due_date}</p>
               <p className="mt-1 whitespace-pre-line text-sm">{h.instructions}</p>
               <Attachment path={h.attachment_path} name={h.attachment_name} />
-            </li>))}</ul>
+            </li>); })}</ul>
         )}
       </Card>
       <Card title="Marks & feedback">
+        <p className="mb-3 text-sm text-muted-foreground">Only marks your teachers have published appear here. Drafts stay hidden until they are final.</p>
         {marks.length === 0 ? <p className="text-muted-foreground">No marks published yet.</p> : (
           <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead><tr className="text-left text-muted-foreground"><th className="py-2">Student</th><th>Term</th><th>Subject</th><th>Assessment</th><th>Score</th><th>Feedback</th></tr></thead>
+            <thead><tr className="text-left text-muted-foreground"><th className="py-2">Student</th><th>Term</th><th>Subject</th><th>Assessment</th><th>Score</th><th>Feedback</th><th>Status</th></tr></thead>
             <tbody>{[...marks].sort((a, b) => a.term.localeCompare(b.term) || a.subject.localeCompare(b.subject)).map((m) => (
               <tr key={m.id} className="border-t"><td className="py-2 font-semibold">{m.students?.full_name}</td><td>{m.term}</td><td>{m.subject}</td><td>{m.assessment}</td>
-                <td className="font-bold">{Number(m.score)}/{Number(m.max_score)}</td><td className="text-muted-foreground">{m.comment ?? "—"}</td></tr>))}</tbody>
+                <td className="font-bold">{Number(m.score)}/{Number(m.max_score)}</td><td className="text-muted-foreground">{m.comment ?? "—"}</td><td><Badge on={m.published} yes="Published" no="Draft" /></td></tr>))}</tbody>
           </table></div>
         )}
       </Card>
