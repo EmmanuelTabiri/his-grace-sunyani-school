@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { SiteLayout, meta } from "@/components/SiteLayout";
+import { SiteLayout, Crest, meta } from "@/components/SiteLayout";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => meta("Set New Password", "Choose a new password for your His Grace Academy portal account."),

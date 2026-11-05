@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { SiteLayout, meta } from "@/components/SiteLayout";
+import { SiteLayout, Crest, meta } from "@/components/SiteLayout";
 
 export const Route = createFileRoute("/auth")({
   head: () => meta("Portal Sign In", "Sign in to the His Grace Academy portal for administrators, head teachers, teachers, students and parents."),

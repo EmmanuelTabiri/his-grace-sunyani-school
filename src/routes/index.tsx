@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, Users, Trophy, Laptop, CalendarDays, ArrowRight } from "lucide-react";
-import { SiteLayout, meta } from "@/components/SiteLayout";
+import { SiteLayout, Crest, meta } from "@/components/SiteLayout";
 import { school, news, events } from "@/lib/school";
 import hero from "@/assets/classroom.jpg";
 import sports from "@/assets/sports.jpg";
