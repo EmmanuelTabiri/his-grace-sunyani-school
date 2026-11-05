@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
+import { downloadCsv } from "@/lib/reports";
 import { StaffTools, FamilyLearning } from "@/components/portal/Classroom";
 import { Button } from "@/components/ui/button";
 import { meta } from "@/components/SiteLayout";
@@ -103,6 +104,13 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
     if (error) toast.error(error.message); else { toast.success("Access updated"); refresh(); }
   }
 
+  async function renameUser(id: string, current: string) {
+    const name = prompt("Full name:", current)?.trim();
+    if (!name || name === current) return;
+    const { error } = await supabase.from("profiles").update({ full_name: name }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Name updated"); refresh(); }
+  }
+
   async function addStudent(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget; const f = new FormData(form);
@@ -158,7 +166,7 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
             <thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Email</th>{ROLES.map((r) => <th key={r}>{roleLabel(r)}</th>)}</tr></thead>
             <tbody>{profiles.map((p) => (
               <tr key={p.id} className="border-t">
-                <td className="py-2 font-semibold">{p.full_name || "—"}</td><td>{p.email}</td>
+                <td className="py-2 font-semibold">{p.full_name || "—"}{isAdmin && <button className="ml-2 text-xs font-bold text-primary" onClick={() => renameUser(p.id, p.full_name)} aria-label={`Edit name for ${p.email}`}>Edit</button>}</td><td>{p.email}</td>
                 {ROLES.map((r) => { const has = p.roles.includes(r); return (
                   <td key={r}><input type="checkbox" aria-label={`${roleLabel(r)} access for ${p.email}`} checked={has} disabled={!canChangeRole(roles, p.roles, r, p.id === userId)} onChange={() => toggleRole(p.id, r, has)} /></td>
                 ); })}
@@ -194,7 +202,11 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
           <button className="btn-primary justify-center">Save fee</button>
         </form>
         <FeeTable fees={fees} onPay={markPaid} />
+        <p className="mt-4 text-xs text-muted-foreground">Emailing receipts will be switched on once the school has its own email address set up. For now, open a receipt and use Print / Save as PDF.</p>
       </Card>}
+
+      <EventsCard />
+      {isAdmin && <ReportsCard fees={fees} students={students} userName={userName} />}
     </>
   );
 }
@@ -217,6 +229,66 @@ function FeeTable({ fees, onPay }: { fees: FeeRow[]; onPay?: (id: string) => voi
           </tr>))}</tbody>
       </table>
     </div>
+  );
+}
+
+function EventsCard() {
+  const qc = useQueryClient();
+  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: async () => (await supabase.from("events").select("*").order("event_date")).data ?? [] });
+  async function add(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget; const f = new FormData(form);
+    const { error } = await supabase.from("events").insert({ title: String(f.get("title")), event_date: String(f.get("date")), place: String(f.get("place")), description: String(f.get("description")) });
+    if (error) toast.error(error.message); else { toast.success("Event posted to the website"); form.reset(); qc.invalidateQueries({ queryKey: ["events"] }); }
+  }
+  async function remove(id: string) {
+    if (!confirm("Remove this event?")) return;
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) toast.error(error.message); else qc.invalidateQueries({ queryKey: ["events"] });
+  }
+  return (
+    <Card title="School events">
+      <form onSubmit={add} className="mb-5 grid gap-3 md:grid-cols-5">
+        <input name="title" required placeholder="Event e.g. Speech Day" className={field} aria-label="Event title" />
+        <input name="date" type="date" required className={field} aria-label="Event date" />
+        <input name="place" placeholder="Place" className={field} aria-label="Event place" />
+        <input name="description" placeholder="Short note (optional)" className={field} aria-label="Event note" />
+        <Button type="submit">Post event</Button>
+      </form>
+      {events.length === 0 ? <p className="text-muted-foreground">No events yet. Events you post appear on the public News & Events page.</p> : (
+        <ul className="space-y-2">{events.map((ev) => <li key={ev.id} className="flex items-center justify-between rounded-xl border p-3 text-sm"><span><b>{ev.title}</b> · {ev.event_date}{ev.place && ` · ${ev.place}`}</span><Button variant="link" onClick={() => remove(ev.id)}>Remove</Button></li>)}</ul>
+      )}
+    </Card>
+  );
+}
+
+function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: { full_name: string; class_name: string; active: boolean; student_user_id: string | null; guardian_user_id: string | null }[]; userName: (id: string | null) => string }) {
+  const [cls, setCls] = useState("");
+  const classes = [...new Set(students.map((s) => s.class_name))].sort();
+  const today = new Date().toISOString().slice(0, 10);
+  const feeRow = (f: FeeRow) => [f.students?.full_name, f.students?.class_name, f.description, Number(f.amount).toFixed(2), f.status, f.payment_method, f.paid_on, f.receipt_no];
+  const feeHead = ["Student", "Class", "Description", "Amount (GHS)", "Status", "Method", "Paid on", "Receipt"];
+  async function marks() {
+    let q = supabase.from("marks").select("subject, assessment, term, score, max_score, published, students!inner(full_name, class_name)").order("term");
+    if (cls) q = q.eq("students.class_name", cls);
+    const { data, error } = await q;
+    if (error) { toast.error(error.message); return; }
+    downloadCsv(`marks-${cls || "all-classes"}-${today}.csv`, ["Student", "Class", "Subject", "Assessment", "Term", "Score", "Out of", "Published"],
+      (data ?? []).map((m) => [m.students?.full_name, m.students?.class_name, m.subject, m.assessment, m.term, m.score, m.max_score, m.published ? "Yes" : "No"]));
+  }
+  return (
+    <Card title="Reports">
+      <p className="mb-4 text-sm text-muted-foreground">Download spreadsheets that open in Excel or Google Sheets.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" onClick={() => downloadCsv(`fees-payments-${today}.csv`, feeHead, fees.map(feeRow))}>Fees & payments</Button>
+        <Button variant="outline" onClick={() => downloadCsv(`unpaid-fees-${today}.csv`, feeHead.slice(0, 5), fees.filter((f) => f.status === "unpaid").map((f) => feeRow(f).slice(0, 5)))}>Unpaid fees</Button>
+        <Button variant="outline" onClick={() => downloadCsv(`students-${today}.csv`, ["Name", "Class", "Status", "Student login", "Parent"], students.map((s) => [s.full_name, s.class_name, s.active ? "Active" : "Inactive", userName(s.student_user_id), userName(s.guardian_user_id)]))}>Student list</Button>
+        <span className="flex items-center gap-2">
+          <select value={cls} onChange={(e) => setCls(e.target.value)} className={field + " !w-auto"} aria-label="Class for marks report"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
+          <Button variant="outline" onClick={marks}>Marks by class</Button>
+        </span>
+      </div>
+    </Card>
   );
 }
 
