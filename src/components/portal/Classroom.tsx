@@ -22,7 +22,7 @@ function useData() {
   return { students: students.data ?? [], marks: marks.data ?? [], homework: homework.data ?? [], news: news.data ?? [], diary: diary.data ?? [] };
 }
 
-export function StaffTools({ userId }: { userId: string }) {
+export function StaffTools({ userId, show }: { userId: string; show: string }) {
   const qc = useQueryClient();
   const { students, marks, homework, news, diary } = useData();
   const classes = [...new Set(students.map((s) => s.class_name).filter(Boolean))].sort();
@@ -105,6 +105,7 @@ export function StaffTools({ userId }: { userId: string }) {
 
   return (
     <>
+      {show === "diary" && <>
       <Card title="Daily class diary">
         <p className="mb-4 text-sm text-muted-foreground">Summarise the topics studied each day — parents and students in the class can read it. Saving again for the same class and day updates the entry.</p>
         <form onSubmit={addDiary} className="mb-5 grid gap-3 md:grid-cols-4">
@@ -122,6 +123,8 @@ export function StaffTools({ userId }: { userId: string }) {
             </li>))}</ul>
         )}
       </Card>
+      </>}
+      {show === "marks" && <>
       <Card title="Record marks">
         <form onSubmit={addMark} className="mb-5 grid gap-3 md:grid-cols-4">
           <select value={klass} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Filter by class"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
@@ -150,7 +153,9 @@ export function StaffTools({ userId }: { userId: string }) {
           </table></div>
         )}
       </Card>
+      </>}
 
+      {show === "homework" && <>
       <Card title="Homework">
         <form onSubmit={addHomework} className="mb-5 grid gap-3 md:grid-cols-4">
           <input name="title" required placeholder="Title" className={field} aria-label="Homework title" />
@@ -171,7 +176,9 @@ export function StaffTools({ userId }: { userId: string }) {
             </li>))}</ul>
         )}
       </Card>
+      </>}
 
+      {show === "announcements" && <>
       <Card title="Announcements">
         <form onSubmit={addNews} className="mb-5 grid gap-3 md:grid-cols-4">
           <input name="title" required placeholder="Title" className={field} aria-label="Announcement title" />
@@ -181,6 +188,7 @@ export function StaffTools({ userId }: { userId: string }) {
         </form>
         <NewsList items={news} onDelete={(id) => remove("announcements", id)} userId={userId} />
       </Card>
+      </>}
     </>
   );
 }
@@ -196,7 +204,7 @@ function Attachment({ path, name }: { path: string | null; name: string | null }
   return <button type="button" onClick={open} className="mt-1 text-sm font-bold text-primary underline">📎 {name ?? "Attachment"}</button>;
 }
 
-export function MyClasses({ userId }: { userId: string }) {
+export function MyClasses({ userId, show }: { userId: string; show: string }) {
   const { students, homework, news } = useData();
   const { data: assigned = [] } = useQuery({ queryKey: ["assignments", userId], queryFn: async () => (await supabase.from("teacher_assignments").select("*").eq("teacher_id", userId).order("class_name")).data ?? [] });
   const byClass = assigned.reduce<Record<string, string[]>>((acc, a) => { (acc[a.class_name] ??= []).push(a.subject); return acc; }, {});
@@ -204,6 +212,7 @@ export function MyClasses({ userId }: { userId: string }) {
   const upcoming = homework.filter((h) => h.due_date >= today && (!assigned.length || byClass[h.class_name])).slice(0, 8);
   return (
     <>
+      {show === "classes" || show === "overview" && <>
       <Card title="My classes & subjects">
         {assigned.length === 0 ? <p className="text-muted-foreground">No classes assigned to you yet. The administrator or head teacher assigns them.</p> : (
           <div className="grid gap-4 md:grid-cols-2">{Object.entries(byClass).map(([c, subs]) => {
@@ -217,13 +226,16 @@ export function MyClasses({ userId }: { userId: string }) {
           })}</div>
         )}
       </Card>
+      </>}
       <div className="grid gap-8 lg:grid-cols-2">
+      {show === "overview" && <>
         <Card title="Upcoming deadlines">
           {upcoming.length === 0 ? <p className="text-muted-foreground">No homework due soon.</p> : (
             <ul className="space-y-2">{upcoming.map((h) => <li key={h.id} className="flex justify-between gap-2 rounded-xl border p-3 text-sm"><span><b>{h.title}</b> · {h.subject} · {h.class_name}</span><span className="whitespace-nowrap font-semibold text-primary">Due {h.due_date}</span></li>)}</ul>
           )}
         </Card>
         <Card title="Latest announcements"><NewsList items={news.slice(0, 5)} /></Card>
+      </>}
       </div>
     </>
   );
@@ -243,10 +255,15 @@ function NewsList({ items, onDelete, userId }: { items: News[]; onDelete?: (id: 
   );
 }
 
-export function FamilyLearning() {
-  const { marks, homework, news, diary } = useData();
+export function FamilyLearning({ show, student }: { show: string; student: { id: string; class_name: string } | null }) {
+  const all = useData();
+  const marks = all.marks.filter((m) => !student || m.student_id === student.id);
+  const homework = all.homework.filter((h) => !student || h.class_name === student.class_name).filter((h) => show !== "overview" || dueStatus(h.due_date).tone !== "overdue").slice(0, show === "overview" ? 5 : undefined);
+  const news = all.news.filter((n) => !student || !n.class_name || n.class_name === student.class_name).slice(0, show === "overview" ? 3 : undefined);
+  const diary = all.diary.filter((d) => !student || d.class_name === student.class_name);
   return (
     <>
+      {show === "diary" && <>
       <Card title="Daily class diary">
         {diary.length === 0 ? <p className="text-muted-foreground">No diary entries yet.</p> : (
           <ul className="space-y-2">{diary.map((d) => (
@@ -256,7 +273,11 @@ export function FamilyLearning() {
             </li>))}</ul>
         )}
       </Card>
+      </>}
+      {show === "announcements" || show === "overview" && <>
       <Card title="Announcements"><NewsList items={news} /></Card>
+      </>}
+      {show === "homework" || show === "overview" && <>
       <Card title="Homework">
         {homework.length > 0 && <p className="mb-3 text-sm"><span className="rounded-full bg-secondary px-2 py-0.5 font-bold text-secondary-foreground">{homework.filter((h) => dueStatus(h.due_date).tone === "soon").length} due in the next 3 days</span></p>}
         {homework.length === 0 ? <p className="text-muted-foreground">No homework right now.</p> : (
@@ -272,6 +293,8 @@ export function FamilyLearning() {
             </li>); })}</ul>
         )}
       </Card>
+      </>}
+      {show === "results" || show === "overview" && <>
       <Card title="Marks & feedback">
         <p className="mb-3 text-sm text-muted-foreground">Only marks your teachers have published appear here. Drafts stay hidden until they are final.</p>
         {marks.length === 0 ? <p className="text-muted-foreground">No marks published yet.</p> : (
@@ -283,6 +306,55 @@ export function FamilyLearning() {
           </table></div>
         )}
       </Card>
+      </>}
     </>
   );
+}
+
+export function Gradebook({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const { students, marks } = useData();
+  const { data: assigned = [] } = useQuery({ queryKey: ["assignments", userId], queryFn: async () => (await supabase.from("teacher_assignments").select("*").eq("teacher_id", userId)).data ?? [] });
+  const classes = [...new Set([...assigned.map((a) => a.class_name), ...students.map((s) => s.class_name)].filter(Boolean))].sort();
+  const [klass, setKlass] = useState(""); const [subject, setSubject] = useState(""); const [term, setTerm] = useState("Term 1");
+  const c = klass || classes[0] || "";
+  const subjects = [...new Set([...assigned.filter((a) => a.class_name === c).map((a) => a.subject), ...marks.filter((m) => m.students?.class_name === c).map((m) => m.subject)])].sort();
+  const subj = subject && subjects.includes(subject) ? subject : subjects[0] ?? "";
+  const rows = students.filter((s) => s.class_name === c && s.active);
+  const cells = marks.filter((m) => m.students?.class_name === c && m.subject === subj && m.term === term);
+  const cols = [...new Set(cells.map((m) => m.assessment))];
+  const drafts = cells.filter((m) => !m.published && m.teacher_id === userId);
+  async function publishAll() {
+    if (!drafts.length) return;
+    if (!confirm(`Publish ${drafts.length} draft mark${drafts.length > 1 ? "s" : ""} for ${c} · ${subj} · ${term}? Students and parents will see them straight away.`)) return;
+    const { error } = await supabase.from("marks").update({ published: true }).in("id", drafts.map((d) => d.id));
+    if (error) toast.error(error.message); else { toast.success("Results published"); qc.invalidateQueries({ queryKey: ["marks"] }); }
+  }
+  return (
+    <Card title="Gradebook">
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <select value={c} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Gradebook class">{classes.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={subj} onChange={(e) => setSubject(e.target.value)} className={field} aria-label="Gradebook subject">{subjects.length === 0 && <option value="">No subjects yet</option>}{subjects.map((x) => <option key={x}>{x}</option>)}</select>
+        <select value={term} onChange={(e) => setTerm(e.target.value)} className={field} aria-label="Gradebook term"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
+        <button onClick={publishAll} disabled={!drafts.length} className="btn-primary justify-center disabled:opacity-50">Publish results ({drafts.length})</button>
+      </div>
+      <p className="mb-3 flex flex-wrap gap-3 text-xs"><Badge on yes="Published" no="" /> visible to families <Badge on={false} yes="" no="Draft" /> only staff can see</p>
+      {rows.length === 0 ? <p className="text-muted-foreground">No students in this class yet.</p> : cols.length === 0 ? <p className="text-muted-foreground">No marks for this subject and term yet. Add them under Marks.</p> : (
+        <div className="overflow-x-auto"><table className="w-full text-sm">
+          <thead><tr className="text-left text-muted-foreground"><th className="py-2">Student</th>{cols.map((a) => <th key={a}>{a}</th>)}</tr></thead>
+          <tbody>{rows.map((s) => (
+            <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td>
+              {cols.map((a) => { const m = cells.find((x) => x.student_id === s.id && x.assessment === a); return (
+                <td key={a}>{m ? <span className={m.published ? "rounded-lg bg-primary/10 px-2 py-1 font-bold text-primary" : "rounded-lg border border-dashed px-2 py-1 italic text-muted-foreground"} title={m.published ? "Published" : "Draft"}>{Number(m.score)}/{Number(m.max_score)}{!m.published && " · draft"}</span> : <span className="text-muted-foreground">—</span>}</td>
+              ); })}</tr>))}</tbody>
+        </table></div>
+      )}
+    </Card>
+  );
+}
+
+export function DraftCount({ userId }: { userId: string }) {
+  const { marks } = useData();
+  const n = marks.filter((m) => !m.published && m.teacher_id === userId).length;
+  return <>{n}</>;
 }

@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Pre-bundle portal UI deps so the dev server never re-optimizes mid-session (which loads two React copies).
+    optimizeDeps: { include: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"] },
+  },
 });
