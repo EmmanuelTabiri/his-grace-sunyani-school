@@ -16,7 +16,7 @@ import { portalSections, schoolYear, type SectionId } from "@/lib/portal-nav";
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => { const tags = meta("School Portal", "Manage students, teachers, learning and school fees at His Grace Academy."); return { ...tags, meta: [...tags.meta, { name: "robots", content: "noindex" }] }; },
-  validateSearch: (s: Record<string, unknown>): { s?: string } => (typeof s.s === "string" ? { s: s.s } : {}),
+  validateSearch: (s: Record<string, unknown>): { s?: string } => (typeof s["s"] === "string" ? { s: s["s"] as string } : {}),
   component: Portal,
 });
 
@@ -46,7 +46,7 @@ function Portal() {
   const kid = kids.find((k) => k.id === kidId) ?? kids[0] ?? null;
   const { data: recent = [] } = useQuery({ queryKey: ["announcements"], enabled: roles.length > 0, queryFn: async () => (await supabase.from("announcements").select("*").order("created_at", { ascending: false })).data ?? [] });
   const fresh = recent.filter((n) => Date.now() - Date.parse(n.created_at) < 7 * 86_400_000);
-  const firstName = (me?.full_name || user.email || "").split(/[ @]/)[0];
+  const firstName = (me?.full_name || user.email || "").split(/[ @]/)[0] ?? "";
 
   async function signOut() {
     await qc.cancelQueries(); qc.clear();
