@@ -10,19 +10,18 @@ import { routeTree } from "@/routeTree.gen";
 describe("Sign in password visibility", () => {
   afterEach(cleanup);
 
-  function renderAuth() {
+  async function renderAuth() {
     const router = createRouter({
       routeTree,
       history: createMemoryHistory({ initialEntries: ["/auth"] }),
       context: { queryClient: new QueryClient() },
     });
     render(<RouterProvider router={router} />);
+    return screen.findByLabelText("Password", {}, { timeout: 5000 });
   }
 
-  it("starts hidden, reveals on click, hides again on second click", () => {
-    renderAuth();
-
-    const password = screen.getByLabelText("Password");
+  it("starts hidden, reveals on click, hides again on second click", async () => {
+    const password = await renderAuth();
     expect(password).toHaveAttribute("type", "password");
 
     fireEvent.click(screen.getByRole("button", { name: "Show password" }));
