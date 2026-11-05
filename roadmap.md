@@ -3,6 +3,7 @@
 - [x] Portal: sign-in, roles (admin, teacher, student, parent)
 - [x] Admin dashboard, student/parent fee views
 - [x] Fees + printable receipts (GHS)
+- [x] Admin: school events (portal + public site), staff name edits, spreadsheet reports
 - [ ] Email receipts — needs a verified sender domain
 - [x] Teacher marks, homework, announcements
 - [x] Daily class diary (teachers write, families view)
