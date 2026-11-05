@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { routeTree } from "@/routeTree.gen";
@@ -20,12 +21,11 @@ describe("Sign in password visibility", () => {
     });
     const component = AuthRoute.options.component;
     if (!component) throw new Error("auth route has no component to render");
+    const element = createElement(component);
 
     render(
       <RouterContextProvider router={router}>
-        <QueryClientProvider client={queryClient}>
-          {typeof component === "function" ? component({}) : null}
-        </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>{element}</QueryClientProvider>
       </RouterContextProvider>,
     );
   }
