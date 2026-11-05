@@ -135,9 +135,11 @@
 @media (max-width: 767px) {
   .public-site .container-page { padding-inline: 1.25rem; }
   .public-site .public-header .container-page { height: 80px; }
-  .public-site .public-hero { min-height: 530px; }
+  .public-site .public-hero { min-height: 480px; }
+  .public-site .public-hero .container-page { padding-block: 2.5rem; }
   .public-site .public-hero h1 { font-size: 3rem; }
   .public-site .hero-shade { background: linear-gradient(90deg, oklch(0.18 0.045 258 / .92), oklch(0.18 0.045 258 / .6)); }
+  .public-site .public-hero + section { padding-top: 2rem; }
 }
 @media (max-width: 379px) { .public-site .school-wordmark > span:first-child { font-size: 1rem; } }
 @media (prefers-reduced-motion: reduce) { .public-site *, .public-site *::before, .public-site *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

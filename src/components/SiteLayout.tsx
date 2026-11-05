@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
-import { Menu, X, MapPin, ArrowRight, LogIn } from 'lucide-react';
+import { Menu, MapPin, ArrowRight, LogIn } from 'lucide-react';
 import logo from '@/assets/school-logo.png.asset.json';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -25,7 +25,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-3">
           <Button asChild variant="secondary" className="hidden h-11 px-5 sm:inline-flex"><Link to="/portal"><LogIn/>Portal Login</Link></Button>
           <Sheet open={open} onOpenChange={setOpen}><SheetTrigger asChild><Button variant="ghost" size="icon" className="xl:hidden" aria-label="Open menu"><Menu/></Button></SheetTrigger>
-            <SheetContent className="public-site bg-background"><SheetTitle className="flex items-center gap-3"><img src={logo.url} alt="" width={44} height={44}/>His Grace Academy</SheetTitle><nav aria-label="Mobile navigation" className="mt-8 flex flex-col gap-1">{nav.map(n => <SheetClose asChild key={n.to}><Link to={n.to} className="border-b py-4 font-semibold" activeOptions={{exact:n.to==='/'}} activeProps={{className:'text-primary'}}>{n.label}</Link></SheetClose>)}<Button asChild variant="secondary" className="mt-6 h-12"><Link to="/portal" onClick={()=>setOpen(false)}><LogIn/>Portal Login</Link></Button></nav></SheetContent>
+            <SheetContent aria-describedby={undefined} className="public-site overflow-y-auto bg-background"><SheetTitle className="flex items-center gap-3 pr-3"><img src={logo.url} alt="" width={44} height={44}/>His Grace Academy</SheetTitle><nav aria-label="Mobile navigation" className="mt-8 flex flex-col gap-1">{nav.map(n => <SheetClose asChild key={n.to}><Link to={n.to} className="border-b py-4 font-semibold" activeOptions={{exact:n.to==='/'}} activeProps={{className:'text-primary'}}>{n.label}</Link></SheetClose>)}<Button asChild variant="secondary" className="mt-6 h-12"><Link to="/portal" onClick={()=>setOpen(false)}><LogIn/>Portal Login</Link></Button></nav></SheetContent>
           </Sheet>
         </div>
       </div>
