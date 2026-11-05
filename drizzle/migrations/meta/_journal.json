@@ -43,6 +43,13 @@
       "when": 1793903593386,
       "tag": "0005_create_events",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793903933817,
+      "tag": "0006_teacher_assignments_and_homework_files",
+      "breakpoints": true
     }
   ]
 }
