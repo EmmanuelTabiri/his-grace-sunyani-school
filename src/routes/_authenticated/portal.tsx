@@ -6,7 +6,7 @@ import logo from "@/assets/school-logo.png.asset.json";
 import { Bell, BookOpen, CalendarDays, ClipboardList, GraduationCap, LayoutDashboard, Megaphone, Menu, NotebookPen, Receipt, School, Table2, UserCog, Users, FileSpreadsheet, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
-import { downloadCsv } from "@/lib/reports";
+import { downloadPdfReport } from "@/lib/report-pdf";
 import { StaffTools, FamilyLearning, MyClasses, Gradebook, DraftCount } from "@/components/portal/Classroom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -403,7 +403,6 @@ function EventsCard() {
 function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: { full_name: string; class_name: string; active: boolean; student_user_id: string | null; guardian_user_id: string | null }[]; userName: (id: string | null) => string }) {
   const [cls, setCls] = useState("");
   const classes = [...new Set(students.map((s) => s.class_name))].sort();
-  const today = new Date().toISOString().slice(0, 10);
   const feeRow = (f: FeeRow) => [f.students?.full_name, f.students?.class_name, f.description, Number(f.amount).toFixed(2), f.status, f.payment_method, f.paid_on, f.receipt_no];
   const feeHead = ["Student", "Class", "Description", "Amount (GHS)", "Status", "Method", "Paid on", "Receipt"];
   async function marks() {
@@ -411,16 +410,16 @@ function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: {
     if (cls) q = q.eq("students.class_name", cls);
     const { data, error } = await q;
     if (error) { toast.error(error.message); return; }
-    downloadCsv(`marks-${cls || "all-classes"}-${today}.csv`, ["Student", "Class", "Subject", "Assessment", "Term", "Score", "Out of", "Published"],
+    downloadPdfReport(`Marks Report — ${cls || "All Classes"}`, ["Student", "Class", "Subject", "Assessment", "Term", "Score", "Out of", "Published"],
       (data ?? []).map((m) => [m.students?.full_name, m.students?.class_name, m.subject, m.assessment, m.term, m.score, m.max_score, m.published ? "Yes" : "No"]));
   }
   return (
     <Card title="Reports">
-      <p className="mb-4 text-sm text-muted-foreground">Download spreadsheets that open in Excel or Google Sheets.</p>
+      <p className="mb-4 text-sm text-muted-foreground">Download PDF reports, each titled and stamped with the date it was generated.</p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" onClick={() => downloadCsv(`fees-payments-${today}.csv`, feeHead, fees.map(feeRow))}>Fees & payments</Button>
-        <Button variant="outline" onClick={() => downloadCsv(`unpaid-fees-${today}.csv`, feeHead.slice(0, 5), fees.filter((f) => f.status === "unpaid").map((f) => feeRow(f).slice(0, 5)))}>Unpaid fees</Button>
-        <Button variant="outline" onClick={() => downloadCsv(`students-${today}.csv`, ["Name", "Class", "Status", "Student login", "Parent"], students.map((s) => [s.full_name, s.class_name, s.active ? "Active" : "Inactive", userName(s.student_user_id), userName(s.guardian_user_id)]))}>Student list</Button>
+        <Button variant="outline" onClick={() => downloadPdfReport("Fees & Payments Report", feeHead, fees.map(feeRow))}>Fees & payments</Button>
+        <Button variant="outline" onClick={() => downloadPdfReport("Unpaid Fees Report", feeHead.slice(0, 5), fees.filter((f) => f.status === "unpaid").map((f) => feeRow(f).slice(0, 5)))}>Unpaid fees</Button>
+        <Button variant="outline" onClick={() => downloadPdfReport("Student List", ["Name", "Class", "Status", "Student login", "Parent"], students.map((s) => [s.full_name, s.class_name, s.active ? "Active" : "Inactive", userName(s.student_user_id), userName(s.guardian_user_id)]))}>Student list</Button>
         <span className="flex items-center gap-2">
           <select value={cls} onChange={(e) => setCls(e.target.value)} className={field + " !w-auto"} aria-label="Class for marks report"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
           <Button variant="outline" onClick={marks}>Marks by class</Button>
