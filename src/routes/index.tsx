@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, Users, Trophy, Laptop, CalendarDays, ArrowRight } from "lucide-react";
-import { SiteLayout, meta } from "@/components/SiteLayout";
+import { SiteLayout, Crest, meta } from "@/components/SiteLayout";
 import { school, news, events } from "@/lib/school";
 import hero from "@/assets/classroom.jpg";
 import sports from "@/assets/sports.jpg";
@@ -23,7 +23,8 @@ function Home() {
       <section className="relative overflow-hidden bg-navy text-navy-foreground">
         <div className="container-page grid items-center gap-10 py-16 md:grid-cols-2 md:py-24">
           <div>
-            <span className="eyebrow !text-secondary">Penkwase · Sunyani</span>
+            <Crest className="h-20 w-20" />
+            <span className="eyebrow mt-5 block !text-secondary">Penkwase · Sunyani</span>
             <h1 className="mt-3 text-5xl font-extrabold leading-tight md:text-6xl">
               Where every child <span className="text-secondary">shines</span>.
             </h1>
