@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { Menu, X, Phone, Mail, MapPin, GraduationCap } from "lucide-react";
+import { Menu, X, Phone, Mail, MapPin } from "lucide-react";
+import logo from "@/assets/school-logo.png.asset.json";
 import { school } from "@/lib/school";
 
 const nav = [
@@ -20,7 +21,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
         <div className="container-page flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-extrabold">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-primary"><GraduationCap size={20} /></span>
+            <img src={logo.url} alt="His Grace Academy logo" width={44} height={44} className="h-11 w-11 object-contain" />
             {school.name}
           </Link>
           <nav className="hidden gap-1 lg:flex" aria-label="Main">
@@ -46,7 +47,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <footer className="bg-navy text-navy-foreground">
         <div className="container-page grid gap-8 py-12 md:grid-cols-3">
           <div>
-            <p className="font-display text-xl font-extrabold">{school.name}</p>
+            <div className="flex items-center gap-3"><img src={logo.url} alt="" width={56} height={56} className="h-14 w-14 rounded-full bg-background object-contain" /><p className="font-display text-xl font-extrabold">{school.name}</p></div>
             <p className="mt-2 text-sm opacity-80">{school.motto}</p>
             <div className="mt-4 flex gap-3 text-sm opacity-80"><a href="#">Facebook</a><a href="#">Instagram</a><a href="#">YouTube</a></div>
           </div>
