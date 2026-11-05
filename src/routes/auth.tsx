@@ -53,7 +53,8 @@ function AuthPage() {
     <SiteLayout>
       <section className="container-page grid place-items-center py-16">
         <div className="w-full max-w-md rounded-2xl border bg-card p-8">
-          <span className="eyebrow">School portal</span>
+          <Crest className="h-20 w-20" />
+          <span className="eyebrow mt-4 block">School portal</span>
           <h1 className="mt-1 text-3xl font-extrabold">
             {mode === "in" ? "Sign in" : mode === "up" ? "Create account" : "Reset password"}
           </h1>

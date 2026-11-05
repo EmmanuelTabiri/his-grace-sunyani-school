@@ -70,13 +70,25 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   );
 }
 
+/** School crest on a light chip — keeps the maroon lettering readable on dark bands. */
+export function Crest({ className = "h-16 w-16", rounded = "rounded-2xl" }: { className?: string; rounded?: string }) {
+  return (
+    <span className={`grid shrink-0 place-items-center bg-background ring-1 ring-black/5 ${rounded} ${className}`}>
+      <img src={logo.url} alt="" width={256} height={256} className="h-[88%] w-[88%] object-contain" />
+    </span>
+  );
+}
+
 export function PageHeader({ eyebrow, title, intro }: { eyebrow: string; title: string; intro?: string }) {
   return (
     <section className="bg-navy text-navy-foreground">
-      <div className="container-page py-16">
-        <span className="eyebrow !text-secondary">{eyebrow}</span>
-        <h1 className="mt-2 text-4xl font-extrabold md:text-5xl">{title}</h1>
-        {intro && <p className="mt-4 max-w-2xl text-lg opacity-85">{intro}</p>}
+      <div className="container-page flex items-start gap-5 py-16">
+        <Crest className="hidden h-20 w-20 sm:grid" />
+        <div>
+          <span className="eyebrow !text-secondary">{eyebrow}</span>
+          <h1 className="mt-2 text-4xl font-extrabold md:text-5xl">{title}</h1>
+          {intro && <p className="mt-4 max-w-2xl text-lg opacity-85">{intro}</p>}
+        </div>
       </div>
     </section>
   );
