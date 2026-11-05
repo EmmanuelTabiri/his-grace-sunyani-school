@@ -13,3 +13,4 @@
 - Admin and head teacher share student management; head teacher role changes are teacher-only and exclude leadership accounts, enforced by RLS as well as UI checks.
 - Scope public website styling beneath .public-site so private portal design remains unchanged; centralize illustrative media and public event queries for consistent public pages.
 - Contact enquiries use browser inserts with insert-only visitor access and administrator-only reads; display success only after the database accepts the enquiry.
+- Keep owner-supplied gallery photographs in a separate asset-backed gallery collection, distinct from generated illustrative public imagery.
