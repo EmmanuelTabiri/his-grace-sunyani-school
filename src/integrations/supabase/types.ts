@@ -68,6 +68,36 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          event_date: string
+          id: string
+          place: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          event_date: string
+          id?: string
+          place?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          event_date?: string
+          id?: string
+          place?: string
+          title?: string
+        }
+        Relationships: []
+      }
       fees: {
         Row: {
           amount: number

@@ -36,6 +36,13 @@
       "when": 1792368216856,
       "tag": "0004_create_diary",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793903593386,
+      "tag": "0005_create_events",
+      "breakpoints": true
     }
   ]
 }
