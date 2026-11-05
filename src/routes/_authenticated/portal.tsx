@@ -151,20 +151,47 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
 
   const userName = (id: string | null) => profiles.find((p) => p.id === id)?.full_name || profiles.find((p) => p.id === id)?.email || "—";
 
+  const classes = [...new Set(students.map((s) => s.class_name).filter(Boolean))].sort();
+  const [q, setQ] = useState(""); const [cf, setCf] = useState(""); const [sf, setSf] = useState("all"); const [page, setPage] = useState(0);
+  const filtered = students.filter((s) => s.full_name.toLowerCase().includes(q.toLowerCase()) && (!cf || s.class_name === cf) && (sf === "all" || (sf === "active") === s.active));
+  const PER = 10; const pages = Math.max(1, Math.ceil(filtered.length / PER)); const shown = filtered.slice(page * PER, page * PER + PER);
+  const [uq, setUq] = useState("");
+  const people = profiles.filter((p) => (isAdmin || p.roles.some((r) => r === "teacher") || p.roles.length === 0) && `${p.full_name} ${p.email}`.toLowerCase().includes(uq.toLowerCase()));
+
   return (
     <>
-      {!isAdmin && <h1 className="text-2xl font-extrabold">Head teacher</h1>}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[["Students", students.length], ["Portal users", profiles.length], ...(isAdmin ? [["Fees collected", cedi(collected)], ["Outstanding", cedi(outstanding)]] : [["Teachers", profiles.filter((p) => p.roles.includes("teacher")).length]])].map(([k, v]) => (
-          <div key={k} className="rounded-2xl bg-navy p-5 text-navy-foreground"><p className="text-sm opacity-80">{k}</p><p className="mt-1 text-2xl font-extrabold text-secondary">{v}</p></div>
-        ))}
-      </div>
+      {show === "overview" && <>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {[["Students", students.filter((s) => s.active).length], ["Teachers", profiles.filter((p) => p.roles.includes("teacher")).length], ["Classes", classes.length], ...(isAdmin ? [["Fees collected", cedi(collected)], ["Outstanding", cedi(outstanding)]] : [["Portal users", profiles.length]])].map(([k, v]) => (
+            <div key={k} className="rounded-2xl border bg-card p-5"><p className="text-sm text-muted-foreground">{k}</p><p className="mt-1 text-2xl font-extrabold text-primary">{v}</p></div>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link to="/portal" search={{ s: "students" }} className="btn-primary">+ Add student</Link>
+          <Link to="/portal" search={{ s: "staff" }} className="btn-sun">+ Add staff member</Link>
+          <Link to="/portal" search={{ s: "classes" }} className="btn-sun">+ Create class</Link>
+          {isAdmin && <Link to="/portal" search={{ s: "fees" }} className="btn-sun">Record payment</Link>}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title="Recent activity">
+            {fees.length + students.length === 0 ? <p className="text-muted-foreground">Nothing yet — activity appears here as you add students and payments.</p> : (
+              <ul className="space-y-2 text-sm">{[
+                ...fees.filter((f) => f.status === "paid").map((f) => ({ t: f.paid_on ?? f.created_at, txt: `Payment ${cedi(f.amount)} — ${f.students?.full_name ?? ""}` })),
+                ...students.map((s) => ({ t: s.created_at, txt: `Student added — ${s.full_name} (${s.class_name})` })),
+              ].sort((a, b) => b.t.localeCompare(a.t)).slice(0, 6).map((a, i) => <li key={i} className="flex justify-between gap-3 rounded-xl border p-3"><span className="min-w-0 truncate">{a.txt}</span><span className="shrink-0 text-muted-foreground">{a.t.slice(0, 10)}</span></li>)}</ul>
+            )}
+          </Card>
+          <UpcomingEvents />
+        </div>
+      </>}
 
-      <Card title={isAdmin ? "Users & access" : "Teachers & access"}>
+      {show === "staff" && <Card title={isAdmin ? "Staff & accounts" : "Teachers & access"}>
+        <p className="mb-3 text-sm text-muted-foreground">To add a staff member or parent, ask them to create an account on the portal sign-in page, then tick their access here.</p>
+        <input value={uq} onChange={(e) => setUq(e.target.value)} placeholder="Search by name or email" className={field + " mb-3 max-w-sm"} aria-label="Search people" />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Email</th>{ROLES.map((r) => <th key={r}>{roleLabel(r)}</th>)}</tr></thead>
-            <tbody>{profiles.map((p) => (
+            <tbody>{people.map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="py-2 font-semibold">{p.full_name || "—"}{isAdmin && <button className="ml-2 text-xs font-bold text-primary" onClick={() => renameUser(p.id, p.full_name)} aria-label={`Edit name for ${p.email}`}>Edit</button>}</td><td>{p.email}</td>
                 {ROLES.map((r) => { const has = p.roles.includes(r); return (
@@ -172,13 +199,15 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
                 ); })}
               </tr>))}</tbody>
           </table>
+          {people.length === 0 && <p className="py-4 text-muted-foreground">No one matches that search.</p>}
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Students">
+      {show === "students" && <Card title="Students">
         <form key={editingId ?? "new"} onSubmit={addStudent} className="mb-5 grid gap-3 md:grid-cols-5">
           <input name="name" defaultValue={editing?.full_name} required placeholder="Student full name" className={field} aria-label="Student full name" />
-          <input name="class" defaultValue={editing?.class_name} required placeholder="Class e.g. Basic 4" className={field} aria-label="Class" />
+          <input name="class" list="class-list" defaultValue={editing?.class_name} required placeholder="Class e.g. Basic 4" className={field} aria-label="Class" />
+          <datalist id="class-list">{classes.map((c) => <option key={c} value={c} />)}</datalist>
           <select name="student_user" defaultValue={editing?.student_user_id ?? ""} className={field} aria-label="Student login"><option value="">Student login (optional)</option>
             {profiles.filter((p) => p.roles.includes("student")).map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select>
           <select name="guardian" defaultValue={editing?.guardian_user_id ?? ""} className={field} aria-label="Parent login"><option value="">Parent login (optional)</option>
@@ -186,13 +215,20 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
           <Button type="submit">{editingId ? "Save student" : "Add student"}</Button>
           {editingId && <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>}
         </form>
-        {students.length === 0 ? <p className="text-muted-foreground">No students yet.</p> : (
+        <div className="mb-3 grid gap-3 sm:grid-cols-3">
+          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Search students" className={field} aria-label="Search students" />
+          <select value={cf} onChange={(e) => { setCf(e.target.value); setPage(0); }} className={field} aria-label="Filter by class"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
+          <select value={sf} onChange={(e) => { setSf(e.target.value); setPage(0); }} className={field} aria-label="Filter by status"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+        </div>
+        {filtered.length === 0 ? <p className="text-muted-foreground">{students.length ? "No students match these filters." : "No students yet."}</p> : (<>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Class</th><th>Student login</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>{students.map((s) => <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td><td>{s.class_name}</td><td>{userName(s.student_user_id)}</td><td>{userName(s.guardian_user_id)}</td><td>{s.active ? "Active" : "Inactive"}</td><td className="whitespace-nowrap"><Button variant="link" onClick={() => setEditingId(s.id)} aria-label={`Edit ${s.full_name}`}>Edit</Button><Button variant="link" onClick={() => toggleActive(s.id, s.active)}>{s.active ? "Deactivate" : "Reactivate"}</Button></td></tr>)}</tbody></table></div>
-        )}
-      </Card>
+            <tbody>{shown.map((s) => <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td><td>{s.class_name}</td><td>{userName(s.student_user_id)}</td><td>{userName(s.guardian_user_id)}</td><td><span className={s.active ? "rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground" : "rounded-full bg-muted px-2 py-0.5 text-xs font-bold"}>{s.active ? "Active" : "Inactive"}</span></td><td className="whitespace-nowrap"><Button variant="link" onClick={() => { setEditingId(s.id); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`Edit ${s.full_name}`}>Edit</Button><Button variant="link" onClick={() => toggleActive(s.id, s.active)}>{s.active ? "Deactivate" : "Reactivate"}</Button></td></tr>)}</tbody></table></div>
+          <div className="mt-3 flex items-center justify-between text-sm"><span className="text-muted-foreground">{filtered.length} students · page {page + 1} of {pages}</span>
+            <span className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button><Button variant="outline" size="sm" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</Button></span></div>
+        </>)}
+      </Card>}
 
-      {isAdmin && <Card title="Fees & receipts">
+      {show === "fees" && isAdmin && <Card title="Fees & receipts">
         <form onSubmit={addFee} className="mb-5 grid gap-3 md:grid-cols-6">
           <select name="student" required className={field} aria-label="Student"><option value="">Student…</option>{students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
           <input name="description" required placeholder="e.g. Term 1 tuition" className={field} aria-label="Fee description" />
@@ -205,9 +241,9 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
         <p className="mt-4 text-xs text-muted-foreground">Emailing receipts will be switched on once the school has its own email address set up. For now, open a receipt and use Print / Save as PDF.</p>
       </Card>}
 
-      <AssignmentsCard teachers={profiles.filter((p) => p.roles.includes("teacher"))} classes={[...new Set(students.map((s) => s.class_name).filter(Boolean))].sort()} />
-      <EventsCard />
-      {isAdmin && <ReportsCard fees={fees} students={students} userName={userName} />}
+      {show === "classes" && <AssignmentsCard teachers={profiles.filter((p) => p.roles.includes("teacher"))} classes={classes} />}
+      {show === "announcements" && <EventsCard />}
+      {show === "reports" && isAdmin && <ReportsCard fees={fees} students={students} userName={userName} />}
     </>
   );
 }
