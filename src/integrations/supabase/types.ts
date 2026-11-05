@@ -144,6 +144,8 @@ export type Database = {
       }
       homework: {
         Row: {
+          attachment_name: string | null
+          attachment_path: string | null
           class_name: string
           created_at: string
           due_date: string
@@ -155,6 +157,8 @@ export type Database = {
           title: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
           class_name: string
           created_at?: string
           due_date: string
@@ -166,6 +170,8 @@ export type Database = {
           title: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
           class_name?: string
           created_at?: string
           due_date?: string
@@ -276,6 +282,30 @@ export type Database = {
           guardian_user_id?: string | null
           id?: string
           student_user_id?: string | null
+        }
+        Relationships: []
+      }
+      teacher_assignments: {
+        Row: {
+          class_name: string
+          created_at: string
+          id: string
+          subject: string
+          teacher_id: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string
+          id?: string
+          subject: string
+          teacher_id: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string
+          id?: string
+          subject?: string
+          teacher_id?: string
         }
         Relationships: []
       }

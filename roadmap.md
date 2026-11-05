@@ -4,6 +4,7 @@
 - [x] Admin dashboard, student/parent fee views
 - [x] Fees + printable receipts (GHS)
 - [x] Admin: school events (portal + public site), staff name edits, spreadsheet reports
+- [x] Teacher portal: assigned classes/subjects, mark editing, homework attachments, upcoming deadlines
 - [ ] Email receipts — needs a verified sender domain
 - [x] Teacher marks, homework, announcements
 - [x] Daily class diary (teachers write, families view)

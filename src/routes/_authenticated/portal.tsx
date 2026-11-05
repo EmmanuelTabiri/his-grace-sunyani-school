@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
 import { downloadCsv } from "@/lib/reports";
-import { StaffTools, FamilyLearning } from "@/components/portal/Classroom";
+import { StaffTools, FamilyLearning, MyClasses } from "@/components/portal/Classroom";
 import { Button } from "@/components/ui/button";
 import { meta } from "@/components/SiteLayout";
 import { ROLES, roleLabel, canChangeRole, type Role } from "@/lib/portal-access";
@@ -47,7 +47,7 @@ function Portal() {
         ) : (
           <>
             {(roles.includes("admin") || roles.includes("head_teacher")) && <AdminArea roles={roles} userId={user.id} />}
-            {roles.includes("teacher") && !roles.includes("admin") && !roles.includes("head_teacher") && <TeacherArea />}
+            {roles.includes("teacher") && <MyClasses userId={user.id} />}
             {(roles.includes("admin") || roles.includes("head_teacher") || roles.includes("teacher")) && <StaffTools userId={user.id} />}
             {(roles.includes("student") || roles.includes("parent")) && <><FamilyLearning /><FamilyArea /></>}
           </>
@@ -205,6 +205,7 @@ function AdminArea({ roles, userId }: { roles: Role[]; userId: string }) {
         <p className="mt-4 text-xs text-muted-foreground">Emailing receipts will be switched on once the school has its own email address set up. For now, open a receipt and use Print / Save as PDF.</p>
       </Card>}
 
+      <AssignmentsCard teachers={profiles.filter((p) => p.roles.includes("teacher"))} classes={[...new Set(students.map((s) => s.class_name).filter(Boolean))].sort()} />
       <EventsCard />
       {isAdmin && <ReportsCard fees={fees} students={students} userName={userName} />}
     </>
@@ -292,12 +293,31 @@ function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: {
   );
 }
 
-function TeacherArea() {
-  const { data: students = [] } = useStudents();
+function AssignmentsCard({ teachers, classes }: { teachers: { id: string; full_name: string; email: string }[]; classes: string[] }) {
+  const qc = useQueryClient();
+  const { data: rows = [] } = useQuery({ queryKey: ["assignments"], queryFn: async () => (await supabase.from("teacher_assignments").select("*").order("class_name")).data ?? [] });
+  const name = (id: string) => { const t = teachers.find((x) => x.id === id); return t?.full_name || t?.email || "—"; };
+  async function add(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget; const f = new FormData(form);
+    const { error } = await supabase.from("teacher_assignments").insert({ teacher_id: String(f.get("teacher")), class_name: String(f.get("class")), subject: String(f.get("subject")).trim() });
+    if (error) toast.error(error.code === "23505" ? "That teacher already has this class and subject." : error.message);
+    else { toast.success("Teacher assigned"); form.reset(); qc.invalidateQueries({ queryKey: ["assignments"] }); }
+  }
+  async function remove(id: string) {
+    const { error } = await supabase.from("teacher_assignments").delete().eq("id", id);
+    if (error) toast.error(error.message); else qc.invalidateQueries({ queryKey: ["assignments"] });
+  }
   return (
-    <Card title="Students">
-      {students.length === 0 ? <p className="text-muted-foreground">No students yet.</p> : (
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{students.map((s) => <li key={s.id} className="rounded-xl border p-3"><p className="font-semibold">{s.full_name}</p><p className="text-sm text-muted-foreground">{s.class_name}</p></li>)}</ul>
+    <Card title="Teacher assignments">
+      <form onSubmit={add} className="mb-5 grid gap-3 md:grid-cols-4">
+        <select name="teacher" required className={field} aria-label="Teacher"><option value="">Teacher…</option>{teachers.map((t) => <option key={t.id} value={t.id}>{t.full_name || t.email}</option>)}</select>
+        <select name="class" required className={field} aria-label="Class to assign"><option value="">Class…</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
+        <input name="subject" required placeholder="Subject e.g. Mathematics" className={field} aria-label="Subject to assign" />
+        <Button type="submit">Assign</Button>
+      </form>
+      {rows.length === 0 ? <p className="text-muted-foreground">No assignments yet.</p> : (
+        <ul className="space-y-2">{rows.map((r) => <li key={r.id} className="flex items-center justify-between rounded-xl border p-3 text-sm"><span><b>{name(r.teacher_id)}</b> · {r.class_name} · {r.subject}</span><Button variant="link" onClick={() => remove(r.id)}>Remove</Button></li>)}</ul>
       )}
     </Card>
   );

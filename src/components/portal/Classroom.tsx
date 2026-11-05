@@ -47,9 +47,19 @@ export function StaffTools({ userId }: { userId: string }) {
   async function addHomework(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget; const f = new FormData(form);
+    const file = f.get("file") as File | null;
+    let attachment_path: string | null = null, attachment_name: string | null = null;
+    if (file && file.size > 0) {
+      if (file.size > 10 * 1024 * 1024) { toast.error("Attachment must be 10 MB or smaller."); return; }
+      attachment_path = `${userId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+      attachment_name = file.name;
+      const up = await supabase.storage.from("homework").upload(attachment_path, file);
+      if (up.error) { toast.error(up.error.message); return; }
+    }
     const { error } = await supabase.from("homework").insert({
       title: String(f.get("title")), instructions: String(f.get("instructions")), subject: String(f.get("subject")),
       class_name: String(f.get("class")), due_date: String(f.get("due")), published: f.get("publish") === "on", teacher_id: userId,
+      attachment_path, attachment_name,
     });
     done(error, "Homework saved", form);
   }
@@ -73,8 +83,19 @@ export function StaffTools({ userId }: { userId: string }) {
     const { error } = await supabase.from(table).update({ published: !published }).eq("id", id);
     done(error, published ? "Moved back to draft" : "Published");
   }
+  async function editMark(m: { id: string; score: number; max_score: number; comment: string | null }) {
+    const s = prompt(`New score (out of ${Number(m.max_score)}):`, String(Number(m.score)));
+    if (s === null) return;
+    const score = Number(s);
+    if (Number.isNaN(score) || score < 0 || score > Number(m.max_score)) { toast.error("Score must be between 0 and the maximum score."); return; }
+    const comment = prompt("Feedback (optional):", m.comment ?? "");
+    if (comment === null) return;
+    const { error } = await supabase.from("marks").update({ score, comment: comment.trim() || null }).eq("id", m.id);
+    done(error, "Mark updated");
+  }
   async function remove(table: "marks" | "homework" | "announcements" | "diary_entries", id: string) {
     if (!confirm("Delete this item? This cannot be undone.")) return;
+    if (table === "homework") { const p = homework.find((h) => h.id === id)?.attachment_path; if (p) await supabase.storage.from("homework").remove([p]); }
     const { error } = await supabase.from(table).delete().eq("id", id);
     done(error, "Deleted");
   }
@@ -121,6 +142,7 @@ export function StaffTools({ userId }: { userId: string }) {
                 <td className="py-2 font-semibold">{m.students?.full_name}</td><td>{m.subject}</td><td>{m.assessment}</td><td>{m.term}</td>
                 <td>{Number(m.score)}/{Number(m.max_score)}</td><td><Badge on={m.published} yes="Published" no="Draft" /></td>
                 <td className="space-x-3 whitespace-nowrap text-right">{(m.teacher_id === userId) && <>
+                  <button onClick={() => editMark(m)} className="font-bold text-primary">Edit</button>
                   <button onClick={() => togglePublish("marks", m.id, m.published)} className="font-bold text-primary">{m.published ? "Unpublish" : "Publish"}</button>
                   <button onClick={() => remove("marks", m.id)} className="font-bold text-destructive">Delete</button></>}</td>
               </tr>))}</tbody>
@@ -134,13 +156,14 @@ export function StaffTools({ userId }: { userId: string }) {
           <input name="subject" required placeholder="Subject" className={field} aria-label="Subject" />
           <select name="class" required className={field} aria-label="Class"><option value="">Class…</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
           <input name="due" type="date" required className={field} aria-label="Due date" />
-          <textarea name="instructions" required rows={2} placeholder="Instructions" className={`${field} md:col-span-3`} aria-label="Instructions" />
+          <textarea name="instructions" required rows={2} placeholder="Instructions" className={`${field} md:col-span-2`} aria-label="Instructions" />
+          <label className="text-sm font-semibold">Attachment (optional, max 10 MB)<input name="file" type="file" className="mt-1 block w-full text-sm" aria-label="Attachment" /></label>
           <div className="flex flex-col gap-2"><label className="flex items-center gap-2 font-semibold"><input type="checkbox" name="publish" defaultChecked /> Publish now</label><button className="btn-primary justify-center">Save homework</button></div>
         </form>
         {homework.length === 0 ? <p className="text-muted-foreground">No homework yet.</p> : (
           <ul className="space-y-2">{homework.map((h) => (
             <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3">
-              <div><p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p><p className="text-sm text-muted-foreground">Due {h.due_date}</p></div>
+              <div><p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p><p className="text-sm text-muted-foreground">Due {h.due_date}</p><Attachment path={h.attachment_path} name={h.attachment_name} /></div>
               <div className="flex items-center gap-3 text-sm"><Badge on={h.published} yes="Published" no="Draft" />
                 {h.teacher_id === userId && <><button onClick={() => togglePublish("homework", h.id, h.published)} className="font-bold text-primary">{h.published ? "Unpublish" : "Publish"}</button>
                 <button onClick={() => remove("homework", h.id)} className="font-bold text-destructive">Delete</button></>}</div>
@@ -157,6 +180,50 @@ export function StaffTools({ userId }: { userId: string }) {
         </form>
         <NewsList items={news} onDelete={(id) => remove("announcements", id)} userId={userId} />
       </Card>
+    </>
+  );
+}
+
+function Attachment({ path, name }: { path: string | null; name: string | null }) {
+  if (!path) return null;
+  async function open() {
+    const w = window.open("", "_blank");
+    const { data, error } = await supabase.storage.from("homework").createSignedUrl(path!, 120);
+    if (error || !data) { w?.close(); toast.error("Could not open the attachment."); return; }
+    if (w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
+  }
+  return <button type="button" onClick={open} className="mt-1 text-sm font-bold text-primary underline">📎 {name ?? "Attachment"}</button>;
+}
+
+export function MyClasses({ userId }: { userId: string }) {
+  const { students, homework, news } = useData();
+  const { data: assigned = [] } = useQuery({ queryKey: ["assignments", userId], queryFn: async () => (await supabase.from("teacher_assignments").select("*").eq("teacher_id", userId).order("class_name")).data ?? [] });
+  const byClass = assigned.reduce<Record<string, string[]>>((acc, a) => { (acc[a.class_name] ??= []).push(a.subject); return acc; }, {});
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = homework.filter((h) => h.due_date >= today && (!assigned.length || byClass[h.class_name])).slice(0, 8);
+  return (
+    <>
+      <Card title="My classes & subjects">
+        {assigned.length === 0 ? <p className="text-muted-foreground">No classes assigned to you yet. The administrator or head teacher assigns them.</p> : (
+          <div className="grid gap-4 md:grid-cols-2">{Object.entries(byClass).map(([c, subs]) => {
+            const list = students.filter((s) => s.class_name === c && s.active);
+            return (
+              <details key={c} className="rounded-xl border p-4" open>
+                <summary className="cursor-pointer font-bold">{c} <span className="font-normal text-muted-foreground">· {subs.join(", ")} · {list.length} students</span></summary>
+                <ul className="mt-2 columns-2 text-sm">{list.map((s) => <li key={s.id}>{s.full_name}</li>)}</ul>
+              </details>
+            );
+          })}</div>
+        )}
+      </Card>
+      <div className="grid gap-8 lg:grid-cols-2">
+        <Card title="Upcoming deadlines">
+          {upcoming.length === 0 ? <p className="text-muted-foreground">No homework due soon.</p> : (
+            <ul className="space-y-2">{upcoming.map((h) => <li key={h.id} className="flex justify-between gap-2 rounded-xl border p-3 text-sm"><span><b>{h.title}</b> · {h.subject} · {h.class_name}</span><span className="whitespace-nowrap font-semibold text-primary">Due {h.due_date}</span></li>)}</ul>
+          )}
+        </Card>
+        <Card title="Latest announcements"><NewsList items={news.slice(0, 5)} /></Card>
+      </div>
     </>
   );
 }
@@ -196,6 +263,7 @@ export function FamilyLearning() {
               <p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p>
               <p className="text-sm font-semibold text-primary">Due {h.due_date}</p>
               <p className="mt-1 whitespace-pre-line text-sm">{h.instructions}</p>
+              <Attachment path={h.attachment_path} name={h.attachment_name} />
             </li>))}</ul>
         )}
       </Card>
