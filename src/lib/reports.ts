@@ -2,7 +2,9 @@ export type Cell = string | number | null | undefined;
 
 export function toCsv(headers: string[], rows: Cell[][]) {
   const esc = (v: Cell) => {
-    const s = v == null ? "" : String(v);
+    let s = v == null ? "" : String(v);
+    // Neutralize spreadsheet formulas (CSV injection).
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return "\uFEFF" + [headers, ...rows].map((r) => r.map(esc).join(",")).join("\r\n");

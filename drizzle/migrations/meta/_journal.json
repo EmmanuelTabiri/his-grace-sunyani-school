@@ -64,6 +64,13 @@
       "when": 1793909705881,
       "tag": "0008_tighten_enquiries_events_homework_files",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793987629765,
+      "tag": "0009_remove_first_signup_admin",
+      "breakpoints": true
     }
   ]
 }
