@@ -30,7 +30,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
     </header>
-    <main id="main-content" className="flex-1">{children}</main>
+    <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
     <footer className="bg-navy text-navy-foreground">
       <div className="container-page grid gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr]">
         <div><div className="flex items-center gap-3"><img src={logo.url} alt="His Grace Academy crest" width={68} height={68} className="h-16 w-16 rounded-lg bg-card p-1 object-contain"/><p className="font-display text-2xl">His Grace Academy</p></div><p className="mt-5 flex max-w-xs gap-2 text-sm leading-relaxed text-navy-foreground/75"><MapPin size={18} className="shrink-0"/>Penkwase, Sunyani<br/>Bono Region, Ghana</p><p className="mt-5 text-xs text-navy-foreground/60">Official social links awaiting confirmation.</p></div>

@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Polish public imagery, enquiry feedback, role messaging, and desktop/mobile interactions
 - [x] Use supplied Google Drive school photographs in the public gallery
 - [x] Refresh all seven public pages, navigation, gallery, and validated enquiry form; preserve private portals
 - [x] Public website: Home, About, Admissions, Academics, Gallery, News & Events, Contact

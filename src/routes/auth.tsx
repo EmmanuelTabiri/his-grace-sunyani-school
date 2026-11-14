@@ -58,7 +58,7 @@ function AuthPage() {
           <h1 className="mt-1 text-3xl font-extrabold">
             {mode === "in" ? "Sign in" : mode === "up" ? "Create account" : "Reset password"}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">For administrators, head teachers, teachers, students and parents. The school office assigns your access after you register.</p>
+          <p className="mt-2 text-sm text-muted-foreground">For administrators, head teachers, teachers, students and parents. New accounts have no portal role until an authorized school administrator assigns access.</p>
           <form onSubmit={submit} className="mt-6 space-y-4">
             {mode === "up" && <label className="block font-semibold">Full name<input name="name" required className={field} /></label>}
             <label className="block font-semibold">Email<input name="email" type="email" required className={field} /></label>

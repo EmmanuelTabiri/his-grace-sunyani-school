@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { canChangeRole } from "./portal-access";
 
 describe("head teacher hierarchy", () => {
+  it("allows only authorized school leaders to assign portal roles", () => {
+    expect(canChangeRole([], [], "student", false)).toBe(false);
+    expect(canChangeRole(["student"], [], "admin", false)).toBe(false);
+    expect(canChangeRole(["parent"], [], "teacher", false)).toBe(false);
+    expect(canChangeRole(["admin"], [], "admin", false)).toBe(true);
+  });
   it("allows head teachers to assign and remove teacher access", () => {
     expect(canChangeRole(["head_teacher"], [], "teacher", false)).toBe(true);
     expect(canChangeRole(["head_teacher"], ["teacher"], "teacher", false)).toBe(true);
