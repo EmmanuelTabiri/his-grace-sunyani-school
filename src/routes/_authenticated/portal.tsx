@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import logo from "@/assets/school-logo.png.asset.json";
-import { Bell, BookOpen, ChevronLeft, ChevronRight, ClipboardList, FileText, GraduationCap, LayoutDashboard, Megaphone, Menu, NotebookPen, Plus, Receipt, School, Table2, UserCog, type LucideIcon } from "lucide-react";
+import { Bell, BookOpen, ChevronLeft, ChevronRight, ClipboardList, FileText, GraduationCap, LayoutDashboard, Megaphone, Menu, NotebookPen, Plus, Receipt, School, Settings, Table2, UserCog, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
 import { downloadPdfReport } from "@/lib/report-pdf";
@@ -15,7 +15,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { meta } from "@/components/SiteLayout";
 import { ROLES, roleLabel, canChangeRole, type Role } from "@/lib/portal-access";
-import { portalSections, schoolYear, type SectionId } from "@/lib/portal-nav";
+import { portalSections, type SectionId } from "@/lib/portal-nav";
+import { SchoolSettings, useSchoolSettings } from "@/components/portal/SchoolSettings";
+import { defaultSchoolSettings } from "@/lib/school-settings";
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => { const tags = meta("School Portal", "Manage students, teachers, learning and school fees at His Grace Academy."); return { ...tags, meta: [...tags.meta, { name: "robots", content: "noindex" }] }; },
@@ -24,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/portal")({
 });
 
 const field = "w-full rounded-lg border bg-background px-3 py-2";
-const ICONS: Record<SectionId, LucideIcon> = { overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileText };
+const ICONS: Record<SectionId, LucideIcon> = { overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileText, settings: Settings };
 const PAGE_DESCRIPTIONS: Record<SectionId, string> = {
   overview: "Here’s a clear view of what’s happening across your school.",
   students: "Manage student records, class placement and family links.",
@@ -38,9 +40,11 @@ const PAGE_DESCRIPTIONS: Record<SectionId, string> = {
   diary: "Share a concise daily summary of topics studied with students and families.",
   fees: "Track student charges, payment status and receipt references.",
   reports: "Download titled, date-stamped PDF reports for school records.",
+  settings: "Manage the details used across the school portal.",
 };
 
 function PageIntro({ section, family, title, action }: { section: SectionId; family: boolean; title: string; action?: ReactNode }) {
+  const { data: settings = defaultSchoolSettings() } = useSchoolSettings();
   const description = family && section === "homework"
     ? "View instructions, attachments and upcoming due dates."
     : family && section === "announcements"
@@ -48,7 +52,7 @@ function PageIntro({ section, family, title, action }: { section: SectionId; fam
       : family && section === "fees"
         ? "View your fee balance, payment history and official receipts."
         : PAGE_DESCRIPTIONS[section];
-  return <section className="portal-page-heading"><div><p className="portal-overline">His Grace Academy · {schoolYear()}</p><h1>{section === "marks" ? "Record marks" : title}</h1><p>{description}</p></div>{action && <div className="portal-actions">{action}</div>}</section>;
+  return <section className="portal-page-heading"><div><p className="portal-overline">{settings.school_name} · {settings.academic_year} · {settings.current_term}</p><h1>{section === "marks" ? "Record marks" : title}</h1><p>{description}</p></div>{action && <div className="portal-actions">{action}</div>}</section>;
 }
 
 function initialsFor(name: string) {
@@ -76,6 +80,7 @@ function Portal() {
   const isTeacher = roles.includes("teacher");
   const isStaff = isLeader || isTeacher;
   const isFamily = !isStaff && (roles.includes("student") || roles.includes("parent"));
+  const { data: schoolSettings = defaultSchoolSettings() } = useSchoolSettings(roles.length > 0);
   const sections = portalSections(roles);
   const current = (sections.find((x) => x.id === search.s) ?? sections[0]);
   const s = current?.id ?? "overview";
@@ -91,7 +96,7 @@ function Portal() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
-  const referenceOrder: SectionId[] = ["overview", "students", "staff", "classes", "marks", "gradebook", "homework", "diary", "fees", "announcements", "results", "reports"];
+  const referenceOrder: SectionId[] = ["overview", "students", "staff", "classes", "marks", "gradebook", "homework", "diary", "fees", "announcements", "results", "reports", "settings"];
   const orderedSections = [...sections].sort((a, b) => referenceOrder.indexOf(a.id) - referenceOrder.indexOf(b.id));
   const nav = (
     <nav aria-label="Portal sections" className="portal-nav flex-1 overflow-y-auto">
@@ -111,10 +116,10 @@ function Portal() {
   const brand = (
     <Link to="/" className="flex items-center gap-2.5">
       <img src={logo.url} alt="His Grace Academy logo" width={40} height={40} className="h-10 w-10 shrink-0 rounded-lg bg-card object-contain" />
-      <span className="min-w-0 leading-tight"><span className="portal-brand block truncate">His Grace Academy</span><span className="portal-brand-subtitle mt-1 block">School management</span></span>
+      <span className="min-w-0 leading-tight"><span className="portal-brand block truncate">{schoolSettings.school_name}</span><span className="portal-brand-subtitle mt-1 block">School management</span></span>
     </Link>
   );
-  const schoolChip = <div className="portal-school-chip"><span className="portal-school-mark"><School className="h-4 w-4" /></span><span className="min-w-0"><b className="block truncate text-[11px] text-primary">His Grace Academy</b><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{isLeader ? "Administration workspace" : isTeacher ? "Teacher workspace" : "Family workspace"}</span></span></div>;
+  const schoolChip = <div className="portal-school-chip"><span className="portal-school-mark"><School className="h-4 w-4" /></span><span className="min-w-0"><b className="block truncate text-[11px] text-primary">{schoolSettings.school_name}</b><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{isLeader ? "Administration workspace" : isTeacher ? "Teacher workspace" : "Family workspace"}</span></span></div>;
   const account = <div className="flex items-center gap-2.5"><span className="portal-avatar">{initialsFor(me?.full_name || firstName)}</span><span className="min-w-0"><b className="block truncate text-[11px] text-primary">{me?.full_name || "My account"}</b><span className="block truncate text-[10px] text-muted-foreground">{portalRole(roles)}</span></span></div>;
 
   return (
@@ -134,7 +139,7 @@ function Portal() {
               <div className="min-w-0"><p className="truncate text-[11px] text-muted-foreground"><span>Portal</span><span className="mx-2">›</span><strong className="font-bold text-foreground">{current?.label ?? "Overview"}</strong></p></div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="hidden rounded-lg border bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground min-[721px]:block">{schoolYear().replace("/", " / ")}</span>
+              <span className="hidden rounded-lg border bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground min-[721px]:block">{schoolSettings.academic_year.replace("/", " / ")} · {schoolSettings.current_term}</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><button className="relative rounded-lg border p-2" aria-label={`Notifications, ${fresh.length} new`}><Bell className="h-4 w-4" />{fresh.length > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[10px] font-bold text-secondary-foreground">{fresh.length}</span>}</button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
@@ -181,7 +186,7 @@ function Portal() {
                 {s === "overview" && <section className="portal-panel p-5">
                   <p className="text-sm text-muted-foreground">Student overview</p>
                   <h2 className="mt-1 text-2xl font-extrabold">{kid ? kid.full_name : "No student linked yet"}</h2>
-                  <p className="mt-1 text-primary">{kid ? `${kid.class_name} · School year ${schoolYear()}` : "The school office will link your account to a student."}</p>
+                  <p className="mt-1 text-primary">{kid ? `${kid.class_name} · School year ${schoolSettings.academic_year} · ${schoolSettings.current_term}` : "The school office will link your account to a student."}</p>
                 </section>}
                 {kids.length === 0 && s !== "overview" ? <Card title="No student linked"><p className="text-muted-foreground">Once the school links your account to a student, their records appear here.</p></Card> : <>
                   {(s === "overview" || s === "fees") && <FamilyArea studentId={kid?.id ?? null} compact={s === "overview"} />}
@@ -356,6 +361,7 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
       {show === "classes" && <AssignmentsCard teachers={profiles.filter((p) => p.roles.includes("teacher"))} classes={classes} />}
       {show === "announcements" && <div className="portal-grid-main"><EventsCard /><StaffTools userId={userId} show={show} /></div>}
       {show === "reports" && isAdmin && <ReportsCard fees={fees} students={students} userName={userName} />}
+      {show === "settings" && isAdmin && <SchoolSettings />}
 
       <Dialog open={studentOpen} onOpenChange={(open) => { setStudentOpen(open); if (!open) setEditingId(null); }}>
         <DialogContent className="portal-app portal-dialog"><DialogHeader><DialogTitle>{editingId ? "Edit student" : "Add student"}</DialogTitle><DialogDescription>Update the student record and optional family account links.</DialogDescription></DialogHeader>
@@ -474,6 +480,7 @@ function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: {
 
 function AssignmentsCard({ teachers, classes }: { teachers: { id: string; full_name: string; email: string }[]; classes: string[] }) {
   const qc = useQueryClient();
+  const { data: settings = defaultSchoolSettings() } = useSchoolSettings();
   const { data: rows = [] } = useQuery({ queryKey: ["assignments"], queryFn: async () => (await supabase.from("teacher_assignments").select("*").order("class_name")).data ?? [] });
   const name = (id: string) => { const t = teachers.find((x) => x.id === id); return t?.full_name || t?.email || "—"; };
   async function add(e: FormEvent<HTMLFormElement>) {
@@ -491,7 +498,7 @@ function AssignmentsCard({ teachers, classes }: { teachers: { id: string; full_n
   const stats = [
     ["Class groups", classes.length, "Classes with student records"],
     ["Subjects", new Set(rows.map((row) => row.subject)).size, "Current teacher assignments"],
-    ["Teacher assignments", rows.length, `School year ${schoolYear()}`],
+    ["Teacher assignments", rows.length, `School year ${settings.academic_year}`],
     ["Unassigned classes", classes.filter((name) => !assignedClasses.has(name)).length, "Review class coverage"],
   ] as const;
   return (

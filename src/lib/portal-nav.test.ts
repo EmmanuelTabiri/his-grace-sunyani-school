@@ -9,6 +9,12 @@ describe("portal navigation by role", () => {
     expect(ids(["head_teacher"])).not.toContain("fees");
     expect(ids(["teacher"])).not.toContain("reports");
   });
+  it("only administrators see school settings", () => {
+    expect(ids(["admin"])).toContain("settings");
+    for (const role of ["head_teacher", "teacher", "student", "parent"] as const) {
+      expect(ids([role])).not.toContain("settings");
+    }
+  });
   it("families never see staff pages", () => {
     for (const r of [["student"], ["parent"]] as const) {
       expect(ids([...r])).not.toContain("students");

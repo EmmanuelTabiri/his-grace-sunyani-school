@@ -21,7 +21,9 @@ import type { Database } from "@/integrations/supabase/types";
 import { cedi } from "@/lib/money";
 import type { Role } from "@/lib/portal-access";
 import { greetingFor, learningStageCount } from "@/lib/portal-overview";
-import { schoolYear, type SectionId } from "@/lib/portal-nav";
+import { type SectionId } from "@/lib/portal-nav";
+import { useSchoolSettings } from "@/components/portal/SchoolSettings";
+import { defaultSchoolSettings } from "@/lib/school-settings";
 
 type Student = Database["public"]["Tables"]["students"]["Row"];
 type Fee = Database["public"]["Tables"]["fees"]["Row"] & {
@@ -50,6 +52,7 @@ function SectionLink({ section, children }: { section: SectionId; children: Reac
 
 export function OverviewHeader({ firstName, roles }: { firstName: string; roles: Role[] }) {
   const now = new Date();
+  const { data: settings = defaultSchoolSettings() } = useSchoolSettings();
   const leader = roles.includes("admin") || roles.includes("head_teacher");
   const teacher = roles.includes("teacher");
   const actions: { section: SectionId; label: string; primary?: boolean }[] = leader
@@ -66,7 +69,7 @@ export function OverviewHeader({ firstName, roles }: { firstName: string; roles:
   return (
     <section className="portal-page-heading">
       <div>
-        <p className="portal-overline">His Grace Academy · {schoolYear()}</p>
+        <p className="portal-overline">{settings.school_name} · {settings.academic_year} · {settings.current_term}</p>
         <h1>{greetingFor(now)}{firstName ? `, ${firstName}` : ""}</h1>
         <p>{subtitle}</p>
       </div>

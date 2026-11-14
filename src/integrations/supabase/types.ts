@@ -282,6 +282,42 @@ export type Database = {
         }
         Relationships: []
       }
+      school_settings: {
+        Row: {
+          academic_year: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          current_term: string
+          id: boolean
+          location: string
+          school_name: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          current_term: string
+          id?: boolean
+          location: string
+          school_name: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          current_term?: string
+          id?: boolean
+          location?: string
+          school_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           active: boolean

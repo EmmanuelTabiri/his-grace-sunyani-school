@@ -14,7 +14,7 @@
 - [x] Teacher portal: assigned classes/subjects, mark editing, homework attachments, upcoming deadlines
 - [x] Dashboard redesign: sidebar/mobile menu, role pages, gradebook, child tabs, notifications
 - [x] Demo data: 12 students, head teacher and teacher accounts, fees with receipts
-- [ ] School settings page — waiting on user to say which settings
+- [x] School settings: profile, academic year, current term and contact details; administrator-only editing
 - [ ] Email receipts — needs a verified sender domain
 - [x] Teacher marks, homework, announcements
 - [x] Daily class diary (teachers write, families view)
