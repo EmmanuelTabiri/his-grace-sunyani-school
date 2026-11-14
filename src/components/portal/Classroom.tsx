@@ -6,8 +6,11 @@ import { dueStatus } from "@/lib/due";
 
 const field = "w-full rounded-xl border bg-background px-3 py-2";
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="portal-panel"><div className="portal-panel-head"><h2>{title}</h2></div><div className="portal-panel-body">{children}</div></section>;
+function Card({ title, subtitle, children, bodyClass = "" }: { title: string; subtitle?: string; children: ReactNode; bodyClass?: string }) {
+  return <section className="portal-panel"><div className="portal-panel-head"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div></div><div className={`portal-panel-body ${bodyClass}`}>{children}</div></section>;
+}
+function FormField({ label, full = false, children }: { label: string; full?: boolean; children: ReactNode }) {
+  return <label className={`portal-field ${full ? "portal-field-full" : ""}`}><span>{label}</span>{children}</label>;
 }
 function Badge({ on, yes, no }: { on: boolean; yes: string; no: string }) {
   return <span className={`portal-badge ${on ? "portal-badge-blue" : "portal-badge-gold"}`}>{on ? yes : no}</span>;
@@ -106,85 +109,86 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
   return (
     <>
       {show === "diary" && <>
-      <Card title="Daily class diary">
-        <p className="mb-4 text-sm text-muted-foreground">Summarise the topics studied each day — parents and students in the class can read it. Saving again for the same class and day updates the entry.</p>
-        <form onSubmit={addDiary} className="mb-5 grid gap-3 md:grid-cols-4">
-          <select name="class" required className={field} aria-label="Class"><option value="">Class…</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
-          <input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={field} aria-label="Date" />
-          <textarea name="topics" required rows={2} placeholder="Topics studied today e.g. Mathematics: fractions; English: comprehension…" className={`${field} md:col-span-2`} aria-label="Topics studied" />
-          <button className="btn-primary justify-center md:col-start-4">Save diary entry</button>
+      <Card title="Daily class diary" subtitle="Saving another entry for the same class and day updates that entry.">
+        <form onSubmit={addDiary} className="portal-form-grid">
+          <FormField label="Class"><select name="class" required className={field}><option value="">Choose class</option>{classes.map((c) => <option key={c}>{c}</option>)}</select></FormField>
+          <FormField label="Date"><input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={field} /></FormField>
+          <FormField label="Topics studied today" full><textarea name="topics" required rows={3} placeholder="e.g. Mathematics: fractions; English: comprehension…" className={field} /></FormField>
+          <div className="portal-form-actions portal-field-full"><button className="btn-primary">Save diary entry</button></div>
         </form>
-        {diary.length === 0 ? <p className="text-muted-foreground">No diary entries yet.</p> : (
+      </Card>
+      <Card title="Recent diary entries" subtitle="Daily notes for your classes">
+        {diary.length === 0 ? <p className="portal-empty">No diary entries yet. Add a class summary above.</p> : (
           <ul className="space-y-2">{diary.map((d) => (
             <li key={d.id} className="flex flex-wrap items-start justify-between gap-2 rounded-xl border p-3">
-              <div><p className="font-bold">{d.class_name} <span className="font-normal text-muted-foreground">· {d.entry_date}</span></p>
-                <p className="mt-1 whitespace-pre-line text-sm">{d.topics}</p></div>
-              {d.teacher_id === userId && <button onClick={() => remove("diary_entries", d.id)} className="text-sm font-bold text-destructive">Delete</button>}
+              <div><p className="font-bold">{d.class_name} <span className="font-normal text-muted-foreground">· {d.entry_date}</span></p><p className="mt-1 whitespace-pre-line text-sm">{d.topics}</p></div>
+              {d.teacher_id === userId && <button onClick={() => remove("diary_entries", d.id)} className="portal-text-link text-destructive">Delete</button>}
             </li>))}</ul>
         )}
       </Card>
       </>}
       {show === "marks" && <>
-      <Card title="New mark entry">
-        <form onSubmit={addMark} className="mb-5 grid gap-3 md:grid-cols-4">
-          <select value={klass} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Filter by class"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
-          <select name="student" required className={field} aria-label="Student"><option value="">Student…</option>{classStudents.map((s) => <option key={s.id} value={s.id}>{s.full_name} ({s.class_name})</option>)}</select>
-          <input name="subject" required placeholder="Subject e.g. Mathematics" className={field} aria-label="Subject" />
-          <select name="assessment" className={field} aria-label="Assessment type"><option>Class exercise</option><option>Assignment</option><option>Test</option><option>Exam</option></select>
-          <select name="term" className={field} aria-label="Term"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
-          <input name="score" type="number" step="0.5" min="0" required placeholder="Score" className={field} aria-label="Score" />
-          <input name="max" type="number" step="0.5" min="1" defaultValue={100} className={field} aria-label="Maximum score" />
-          <input name="comment" placeholder="Feedback (optional)" className={field} aria-label="Feedback" />
-          <label className="flex items-center gap-2 font-semibold"><input type="checkbox" name="publish" /> Publish to student & parent</label>
-          <button className="btn-primary justify-center md:col-start-4">Save mark</button>
+      <Card title="New mark entry" subtitle="Marks remain staff-only unless you choose to publish to the student and parent.">
+        <form onSubmit={addMark} className="portal-form-grid">
+          <FormField label="Class"><select value={klass} onChange={(e) => setKlass(e.target.value)} className={field}><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select></FormField>
+          <FormField label="Student"><select name="student" required className={field}><option value="">Choose student</option>{classStudents.map((s) => <option key={s.id} value={s.id}>{s.full_name} ({s.class_name})</option>)}</select></FormField>
+          <FormField label="Subject"><input name="subject" required placeholder="e.g. Mathematics" className={field} /></FormField>
+          <FormField label="Assessment"><select name="assessment" className={field}><option>Class exercise</option><option>Assignment</option><option>Test</option><option>Exam</option></select></FormField>
+          <FormField label="Term"><select name="term" className={field}><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></FormField>
+          <FormField label="Score"><input name="score" type="number" step="0.5" min="0" required placeholder="Score" className={field} /></FormField>
+          <FormField label="Maximum score"><input name="max" type="number" step="0.5" min="1" defaultValue={100} className={field} /></FormField>
+          <FormField label="Feedback (optional)"><input name="comment" placeholder="Short note for the learner" className={field} /></FormField>
+          <label className="portal-checkline portal-field-full"><input type="checkbox" name="publish" />Publish to student and parent now</label>
+          <div className="portal-form-actions portal-field-full"><button className="portal-btn" type="reset">Clear</button><button className="btn-primary">Save mark</button></div>
         </form>
-        {marks.length === 0 ? <p className="text-muted-foreground">No marks recorded yet.</p> : (
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead><tr className="text-left text-muted-foreground"><th className="py-2">Student</th><th>Subject</th><th>Assessment</th><th>Term</th><th>Score</th><th>Status</th><th /></tr></thead>
+      </Card>
+      <Card title="Recorded marks" subtitle="Review scores, feedback and publication status." bodyClass="!p-0">
+        {marks.length === 0 ? <p className="portal-empty">No marks recorded yet.</p> : (
+          <div className="portal-table-wrap"><table>
+            <thead><tr><th>Student</th><th>Subject</th><th>Assessment</th><th>Term</th><th>Score</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>{marks.map((m) => (
-              <tr key={m.id} className="border-t">
-                <td className="py-2 font-semibold">{m.students?.full_name}</td><td>{m.subject}</td><td>{m.assessment}</td><td>{m.term}</td>
-                <td>{Number(m.score)}/{Number(m.max_score)}</td><td><Badge on={m.published} yes="Published" no="Draft" /></td>
+              <tr key={m.id}><td><b>{m.students?.full_name}</b></td><td>{m.subject}</td><td>{m.assessment}</td><td>{m.term}</td><td>{Number(m.score)}/{Number(m.max_score)}</td><td><Badge on={m.published} yes="Published" no="Draft" /></td>
                 <td className="space-x-3 whitespace-nowrap text-right">{(m.teacher_id === userId) && <>
-                  <button onClick={() => editMark(m)} className="font-bold text-primary">Edit</button>
-                  <button onClick={() => togglePublish("marks", m.id, m.published)} className="font-bold text-primary">{m.published ? "Unpublish" : "Publish"}</button>
-                  <button onClick={() => remove("marks", m.id)} className="font-bold text-destructive">Delete</button></>}</td>
+                  <button onClick={() => editMark(m)} className="portal-text-link">Edit</button><button onClick={() => togglePublish("marks", m.id, m.published)} className="portal-text-link">{m.published ? "Unpublish" : "Publish"}</button><button onClick={() => remove("marks", m.id)} className="portal-text-link text-destructive">Delete</button></>}</td>
               </tr>))}</tbody>
           </table></div>
         )}
       </Card>
+      <div className="portal-notice">Published marks are visible to the relevant student and linked parent account. Review before publishing.</div>
       </>}
 
       {show === "homework" && <>
-      <Card title="Create homework">
-        <form onSubmit={addHomework} className="mb-5 grid gap-3 md:grid-cols-4">
-          <input name="title" required placeholder="Title" className={field} aria-label="Homework title" />
-          <input name="subject" required placeholder="Subject" className={field} aria-label="Subject" />
-          <select name="class" required className={field} aria-label="Class"><option value="">Class…</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
-          <input name="due" type="date" required className={field} aria-label="Due date" />
-          <textarea name="instructions" required rows={2} placeholder="Instructions" className={`${field} md:col-span-2`} aria-label="Instructions" />
-          <label className="text-sm font-semibold">Attachment (optional, max 10 MB)<input name="file" type="file" className="mt-1 block w-full text-sm" aria-label="Attachment" /></label>
-          <div className="flex flex-col gap-2"><label className="flex items-center gap-2 font-semibold"><input type="checkbox" name="publish" defaultChecked /> Publish now</label><button className="btn-primary justify-center">Save homework</button></div>
+      <Card title="Create homework" subtitle="Students and linked parents can see published homework.">
+        <form onSubmit={addHomework} className="portal-form-grid">
+          <FormField label="Title"><input name="title" required placeholder="Homework title" className={field} /></FormField>
+          <FormField label="Subject"><input name="subject" required placeholder="Subject" className={field} /></FormField>
+          <FormField label="Class"><select name="class" required className={field}><option value="">Choose class</option>{classes.map((c) => <option key={c}>{c}</option>)}</select></FormField>
+          <FormField label="Due date"><input name="due" type="date" required className={field} /></FormField>
+          <FormField label="Instructions" full><textarea name="instructions" required rows={3} placeholder="Explain what students should do…" className={field} /></FormField>
+          <FormField label="Attachment (optional, max 10 MB)"><input name="file" type="file" className={field} /></FormField>
+          <label className="portal-checkline self-end"><input type="checkbox" name="publish" defaultChecked />Publish now</label>
+          <div className="portal-form-actions portal-field-full"><button className="portal-btn" type="reset">Clear</button><button className="btn-primary">Save homework</button></div>
         </form>
-        {homework.length === 0 ? <p className="text-muted-foreground">No homework yet.</p> : (
+      </Card>
+      <Card title="Recent homework" subtitle="Newly created assignments">
+        {homework.length === 0 ? <p className="portal-empty">No homework entries yet. Use the form above to add one.</p> : (
           <ul className="space-y-2">{homework.map((h) => (
             <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3">
               <div><p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p><p className="text-sm text-muted-foreground">Due {h.due_date}</p><Attachment path={h.attachment_path} name={h.attachment_name} /></div>
               <div className="flex items-center gap-3 text-sm"><Badge on={h.published} yes="Published" no="Draft" />
-                {h.teacher_id === userId && <><button onClick={() => togglePublish("homework", h.id, h.published)} className="font-bold text-primary">{h.published ? "Unpublish" : "Publish"}</button>
-                <button onClick={() => remove("homework", h.id)} className="font-bold text-destructive">Delete</button></>}</div>
+                {h.teacher_id === userId && <><button onClick={() => togglePublish("homework", h.id, h.published)} className="portal-text-link">{h.published ? "Unpublish" : "Publish"}</button><button onClick={() => remove("homework", h.id)} className="portal-text-link text-destructive">Delete</button></>}</div>
             </li>))}</ul>
         )}
       </Card>
       </>}
 
       {show === "announcements" && <>
-      <Card title="Post announcement">
-        <form onSubmit={addNews} className="mb-5 grid gap-3 md:grid-cols-4">
-          <input name="title" required placeholder="Title" className={field} aria-label="Announcement title" />
-          <select name="class" className={field} aria-label="Audience"><option value="">Whole school</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
-          <textarea name="body" required rows={2} placeholder="Message" className={`${field} md:col-span-2`} aria-label="Message" />
-          <button className="btn-primary justify-center md:col-start-4">Post announcement</button>
+      <Card title="Post announcement" subtitle="Choose an audience and share a concise message.">
+        <form onSubmit={addNews} className="portal-form-grid mb-5">
+          <FormField label="Title" full><input name="title" required placeholder="Announcement title" className={field} /></FormField>
+          <FormField label="Audience" full><select name="class" className={field}><option value="">Whole school</option>{classes.map((c) => <option key={c}>{c}</option>)}</select></FormField>
+          <FormField label="Message" full><textarea name="body" required rows={3} placeholder="Write your announcement…" className={field} /></FormField>
+          <div className="portal-form-actions portal-field-full"><button className="btn-primary">Post announcement</button></div>
         </form>
         <NewsList items={news} onDelete={(id) => remove("announcements", id)} userId={userId} />
       </Card>
@@ -331,25 +335,29 @@ export function Gradebook({ userId }: { userId: string }) {
     if (error) toast.error(error.message); else { toast.success("Results published"); qc.invalidateQueries({ queryKey: ["marks"] }); }
   }
   return (
-    <Card title="Gradebook">
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <select value={c} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Gradebook class">{classes.map((x) => <option key={x}>{x}</option>)}</select>
-        <select value={subj} onChange={(e) => setSubject(e.target.value)} className={field} aria-label="Gradebook subject">{subjects.length === 0 && <option value="">No subjects yet</option>}{subjects.map((x) => <option key={x}>{x}</option>)}</select>
-        <select value={term} onChange={(e) => setTerm(e.target.value)} className={field} aria-label="Gradebook term"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
-        <button onClick={publishAll} disabled={!drafts.length} className="btn-primary justify-center disabled:opacity-50">Publish results ({drafts.length})</button>
-      </div>
-      <p className="mb-3 flex flex-wrap gap-3 text-xs"><Badge on yes="Published" no="" /> visible to families <Badge on={false} yes="" no="Draft" /> only staff can see</p>
-      {rows.length === 0 ? <p className="text-muted-foreground">No students in this class yet.</p> : cols.length === 0 ? <p className="text-muted-foreground">No marks for this subject and term yet. Add them under Marks.</p> : (
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead><tr className="text-left text-muted-foreground"><th className="py-2">Student</th>{cols.map((a) => <th key={a}>{a}</th>)}</tr></thead>
-          <tbody>{rows.map((s) => (
-            <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td>
-              {cols.map((a) => { const m = cells.find((x) => x.student_id === s.id && x.assessment === a); return (
-                <td key={a}>{m ? <span className={m.published ? "rounded-lg bg-primary/10 px-2 py-1 font-bold text-primary" : "rounded-lg border border-dashed px-2 py-1 italic text-muted-foreground"} title={m.published ? "Published" : "Draft"}>{Number(m.score)}/{Number(m.max_score)}{!m.published && " · draft"}</span> : <span className="text-muted-foreground">—</span>}</td>
-              ); })}</tr>))}</tbody>
-        </table></div>
-      )}
-    </Card>
+    <>
+      <Card title="Class gradebook" subtitle="Select a class, subject and term to review marks." bodyClass="!p-0">
+        <div className="portal-toolbar">
+          <select value={c} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Gradebook class">{classes.map((x) => <option key={x}>{x}</option>)}</select>
+          <select value={subj} onChange={(e) => setSubject(e.target.value)} className={field} aria-label="Gradebook subject">{subjects.length === 0 && <option value="">No subjects yet</option>}{subjects.map((x) => <option key={x}>{x}</option>)}</select>
+          <select value={term} onChange={(e) => setTerm(e.target.value)} className={field} aria-label="Gradebook term"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
+          <button onClick={publishAll} disabled={!drafts.length} className="btn-primary disabled:opacity-50">Publish results ({drafts.length})</button>
+        </div>
+        <div className="flex flex-wrap gap-3 px-4 pb-4 text-[10px] text-muted-foreground"><span><Badge on yes="Published" no="" /> visible to families</span><span><Badge on={false} yes="" no="Draft" /> only staff can see</span></div>
+        {rows.length === 0 ? <p className="portal-empty">No students in this class yet.</p> : cols.length === 0 ? <p className="portal-empty">No marks for this subject and term yet. Add them under Marks.</p> : (
+          <div className="portal-table-wrap"><table>
+            <thead><tr><th>Student</th>{cols.map((a) => <th key={a}>{a}</th>)}</tr></thead>
+            <tbody>{rows.map((s) => (
+              <tr key={s.id}><td><b>{s.full_name}</b></td>
+                {cols.map((a) => { const m = cells.find((x) => x.student_id === s.id && x.assessment === a); return (
+                  <td key={a}>{m ? <span className={m.published ? "portal-badge portal-badge-blue" : "portal-badge portal-badge-gold"} title={m.published ? "Published" : "Draft"}>{Number(m.score)}/{Number(m.max_score)}{!m.published && " · draft"}</span> : <span className="text-muted-foreground">—</span>}</td>
+                ); })}</tr>))}</tbody>
+          </table></div>
+        )}
+        <div className="portal-table-foot"><span>{rows.length} students</span><span>{drafts.length} drafts</span></div>
+      </Card>
+      <div className="portal-notice"><b>Before publishing:</b> Confirm scores and term selection. Published results will become visible to students and linked parents.</div>
+    </>
   );
 }
 

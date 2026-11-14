@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Match the second uploaded portal reference’s layout and styling throughout, preserving real features, data, and permissions
 - [x] Apply the uploaded light admin reference across the whole portal while preserving features, data, and permissions
 - [x] Adapt the uploaded public website reference while preserving school identity and private portals
 - [x] Apply the shared Merlin dashboard model to the portal with real data and existing role permissions
