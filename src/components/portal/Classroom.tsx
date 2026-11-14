@@ -7,10 +7,10 @@ import { dueStatus } from "@/lib/due";
 const field = "w-full rounded-xl border bg-background px-3 py-2";
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="rounded-2xl border bg-card p-6"><h2 className="mb-4 text-xl font-extrabold">{title}</h2>{children}</section>;
+  return <section className="portal-panel"><div className="portal-panel-head"><h2>{title}</h2></div><div className="portal-panel-body">{children}</div></section>;
 }
 function Badge({ on, yes, no }: { on: boolean; yes: string; no: string }) {
-  return <span className={on ? "rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground" : "rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground"}>{on ? yes : no}</span>;
+  return <span className={`portal-badge ${on ? "portal-badge-blue" : "portal-badge-gold"}`}>{on ? yes : no}</span>;
 }
 
 function useData() {
@@ -125,7 +125,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
       </Card>
       </>}
       {show === "marks" && <>
-      <Card title="Record marks">
+      <Card title="New mark entry">
         <form onSubmit={addMark} className="mb-5 grid gap-3 md:grid-cols-4">
           <select value={klass} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Filter by class"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
           <select name="student" required className={field} aria-label="Student"><option value="">Student…</option>{classStudents.map((s) => <option key={s.id} value={s.id}>{s.full_name} ({s.class_name})</option>)}</select>
@@ -156,7 +156,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
       </>}
 
       {show === "homework" && <>
-      <Card title="Homework">
+      <Card title="Create homework">
         <form onSubmit={addHomework} className="mb-5 grid gap-3 md:grid-cols-4">
           <input name="title" required placeholder="Title" className={field} aria-label="Homework title" />
           <input name="subject" required placeholder="Subject" className={field} aria-label="Subject" />
@@ -179,7 +179,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
       </>}
 
       {show === "announcements" && <>
-      <Card title="Announcements">
+      <Card title="Post announcement">
         <form onSubmit={addNews} className="mb-5 grid gap-3 md:grid-cols-4">
           <input name="title" required placeholder="Title" className={field} aria-label="Announcement title" />
           <select name="class" className={field} aria-label="Audience"><option value="">Whole school</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>
@@ -279,13 +279,13 @@ export function FamilyLearning({ show, student }: { show: string; student: { id:
       </>}
       {show === "homework" || show === "overview" && <>
       <Card title="Homework">
-        {homework.length > 0 && <p className="mb-3 text-sm"><span className="rounded-full bg-secondary px-2 py-0.5 font-bold text-secondary-foreground">{homework.filter((h) => dueStatus(h.due_date).tone === "soon").length} due in the next 3 days</span></p>}
+        {homework.length > 0 && <p className="mb-3 text-sm"><span className="portal-badge portal-badge-gold">{homework.filter((h) => dueStatus(h.due_date).tone === "soon").length} due in the next 3 days</span></p>}
         {homework.length === 0 ? <p className="text-muted-foreground">No homework right now.</p> : (
           <ul className="space-y-2">{[...homework].sort((a, b) => { const r = (t: string) => (t === "soon" ? 0 : t === "later" ? 1 : 2); return r(dueStatus(a.due_date).tone) - r(dueStatus(b.due_date).tone) || a.due_date.localeCompare(b.due_date); }).map((h) => { const d = dueStatus(h.due_date); return (
             <li key={h.id} className={d.tone === "soon" ? "rounded-xl border-2 border-secondary p-4" : d.tone === "overdue" ? "rounded-xl border p-4 opacity-70" : "rounded-xl border p-4"}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-bold">{h.title} <span className="font-normal text-muted-foreground">· {h.subject} · {h.class_name}</span></p>
-                <span className={d.tone === "soon" ? "rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground" : d.tone === "overdue" ? "rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground" : "rounded-full bg-muted px-2 py-0.5 text-xs font-bold"}>{d.label}</span>
+                <span className={`portal-badge ${d.tone === "soon" ? "portal-badge-gold" : d.tone === "overdue" ? "portal-badge-red" : "portal-badge-gray"}`}>{d.label}</span>
               </div>
               <p className="text-sm font-semibold text-primary">Due {h.due_date}</p>
               <p className="mt-1 whitespace-pre-line text-sm">{h.instructions}</p>

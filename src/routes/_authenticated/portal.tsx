@@ -22,8 +22,33 @@ export const Route = createFileRoute("/_authenticated/portal")({
   component: Portal,
 });
 
-const field = "w-full rounded-xl border bg-background px-3 py-2";
+const field = "w-full rounded-lg border bg-background px-3 py-2";
 const ICONS: Record<SectionId, LucideIcon> = { overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileText };
+const PAGE_DESCRIPTIONS: Record<SectionId, string> = {
+  overview: "A clear view of what’s happening across your school.",
+  students: "Manage student records, class placement and family links.",
+  staff: "Manage portal access for staff, students and parents.",
+  classes: "Review class groups, subjects and teacher assignments.",
+  gradebook: "Review class assessments, drafts and published results.",
+  marks: "Enter assessment scores and choose whether to publish them.",
+  results: "View published marks, scores and teacher feedback.",
+  homework: "Create and review homework with clear class and due-date details.",
+  announcements: "Share important updates and event details with the school community.",
+  diary: "Share and review concise daily summaries of topics studied.",
+  fees: "Track student charges, payment status and receipt references.",
+  reports: "Download titled, date-stamped PDF reports for school records.",
+};
+
+function PageIntro({ section, family, title }: { section: SectionId; family: boolean; title: string }) {
+  const description = family && section === "homework"
+    ? "View instructions, attachments and upcoming due dates."
+    : family && section === "announcements"
+      ? "Read school updates and upcoming event details."
+      : family && section === "fees"
+        ? "View your fee balance, payment history and official receipts."
+        : PAGE_DESCRIPTIONS[section];
+  return <section className="portal-page-heading"><div><p className="portal-overline">His Grace Academy · {schoolYear()}</p><h1>{section === "marks" ? "Record marks" : title}</h1><p>{description}</p></div></section>;
+}
 
 function Portal() {
   const { user } = Route.useRouteContext();
@@ -66,9 +91,9 @@ function Portal() {
         const previousManagement = index > 0 && isLeader && managementIds.includes(orderedSections[index - 1]?.id ?? "overview");
         return (
           <div key={x.id}>
-            {(index === 0 || management !== previousManagement) && <p className="px-3 pb-2 pt-4 text-[10px] font-extrabold uppercase tracking-[0.16em] text-navy-foreground/55">{management ? "Administration" : "Workspace"}</p>}
+            {(index === 0 || management !== previousManagement) && <p className="portal-nav-title">{management ? "Administration" : "Portal"}</p>}
             <Link to="/portal" search={{ s: x.id }} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${active ? "bg-secondary text-secondary-foreground" : "text-navy-foreground/85 hover:bg-navy-foreground/10"}`}>
+              className={`portal-nav-link ${active ? "portal-nav-active" : ""}`}>
               <Icon className="h-4 w-4 shrink-0" />{x.label}
             </Link>
           </div>
@@ -77,36 +102,34 @@ function Portal() {
     </nav>
   );
   const brand = (
-    <Link to="/" className="flex items-center gap-2">
-      <img src={logo.url} alt="His Grace Academy logo" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-background object-contain" />
-      <span className="min-w-0 leading-tight"><span className="block truncate font-display font-extrabold">His Grace Academy</span><span className="mt-1 block text-xs opacity-75">School Portal · Sunyani</span></span>
+    <Link to="/" className="flex items-center gap-2.5">
+      <img src={logo.url} alt="His Grace Academy logo" width={40} height={40} className="h-10 w-10 shrink-0 rounded-lg bg-card object-contain" />
+      <span className="min-w-0 leading-tight"><span className="portal-brand block truncate">His Grace Academy</span><span className="portal-brand-subtitle mt-1 block">School management</span></span>
     </Link>
   );
+  const schoolChip = <div className="portal-school-chip"><span className="portal-school-mark"><School className="h-4 w-4" /></span><span className="min-w-0"><b className="block truncate text-[11px] text-primary">His Grace Academy</b><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{isLeader ? "Administration workspace" : isTeacher ? "Teacher workspace" : "Family workspace"}</span></span></div>;
+  const account = <div className="flex items-center gap-2.5"><span className="portal-avatar">{firstName.charAt(0).toUpperCase() || "?"}</span><span className="min-w-0"><b className="block truncate text-[11px] text-primary">{me?.full_name || "My account"}</b><span className="block truncate text-[10px] text-muted-foreground">{roles.map(roleLabel).join(", ")}</span></span></div>;
 
   return (
-    <div className="flex min-h-screen w-full bg-muted">
-      {roles.length > 0 && <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-5 bg-navy p-4 text-navy-foreground lg:flex">
-        <div className="border-b border-navy-foreground/15 pb-5">{brand}</div>{nav}
-        <div className="flex items-center gap-3 border-t border-navy-foreground/15 pt-4">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary font-extrabold text-secondary-foreground">{firstName.charAt(0).toUpperCase() || "?"}</span>
-          <span className="min-w-0"><b className="block truncate text-sm">{me?.full_name || "My account"}</b><span className="block truncate text-xs text-navy-foreground/65">{roles.map(roleLabel).join(", ")}</span></span>
-        </div>
+    <div className="portal-app flex min-h-screen w-full">
+      {roles.length > 0 && <aside className="portal-sidebar sticky top-0 hidden h-screen w-[246px] shrink-0 flex-col gap-4 border-r p-4 lg:flex">
+        <div className="border-b px-1 pb-4 pt-1">{brand}</div>{schoolChip}{nav}
+        <div className="border-t px-1 pt-4">{account}</div>
       </aside>}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b bg-card">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6">
+        <header className="portal-topbar sticky top-0 z-20 border-b">
+          <div className="grid min-h-[68px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
               {roles.length > 0 && <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild><button className="rounded-lg border p-2 lg:hidden" aria-label="Open menu"><Menu className="h-5 w-5" /></button></SheetTrigger>
-                <SheetContent side="left" className="w-72 border-0 bg-navy p-4 text-navy-foreground"><SheetTitle className="sr-only">Portal menu</SheetTitle><div className="space-y-6">{brand}{nav}</div></SheetContent>
+                <SheetContent side="left" className="portal-app portal-sidebar w-72 border-r p-4"><SheetTitle className="sr-only">Portal menu</SheetTitle><div className="flex h-full flex-col gap-4"><div className="border-b px-1 pb-4 pt-1">{brand}</div>{schoolChip}{nav}<div className="border-t px-1 pt-4">{account}</div></div></SheetContent>
               </Sheet>}
-              <div className="min-w-0"><p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">Portal</span><span className="mx-2">/</span>{current?.label ?? "Overview"}</p>
-                <h1 className="mt-0.5 truncate text-lg font-extrabold sm:text-xl">{current?.label ?? "Portal"}</h1></div>
+              <div className="min-w-0"><p className="truncate text-[11px] text-muted-foreground"><span>Portal</span><span className="mx-2">›</span><strong className="font-bold text-foreground">{current?.label ?? "Overview"}</strong></p></div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="hidden rounded-full bg-muted px-3 py-2 text-xs font-bold text-muted-foreground md:block">{schoolYear()}</span>
+              <span className="hidden rounded-lg border bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground md:block">{schoolYear()}</span>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild><button className="relative rounded-full border p-2" aria-label={`Notifications, ${fresh.length} new`}><Bell className="h-5 w-5" />{fresh.length > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-xs font-bold text-secondary-foreground">{fresh.length}</span>}</button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild><button className="relative rounded-lg border p-2" aria-label={`Notifications, ${fresh.length} new`}><Bell className="h-4 w-4" />{fresh.length > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[10px] font-bold text-secondary-foreground">{fresh.length}</span>}</button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
                   <DropdownMenuLabel>New this week</DropdownMenuLabel><DropdownMenuSeparator />
                   {fresh.length === 0 ? <p className="p-3 text-sm text-muted-foreground">You're all caught up.</p> : fresh.slice(0, 5).map((n) => (
@@ -116,7 +139,7 @@ function Portal() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><button className="flex items-center gap-2 rounded-full p-1 text-left transition-colors hover:bg-muted" aria-label="Profile menu">
                   <span className="hidden min-w-0 sm:block"><b className="block max-w-40 truncate text-xs">{me?.full_name || "My account"}</b><span className="block text-xs text-muted-foreground">{roles.map(roleLabel).join(", ") || "Awaiting access"}</span></span>
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary font-extrabold text-secondary-foreground">{firstName.charAt(0).toUpperCase() || "?"}</span>
+                  <span className="portal-avatar">{firstName.charAt(0).toUpperCase() || "?"}</span>
                 </button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel className="font-normal"><span className="block font-semibold">{me?.full_name || "My account"}</span><span className="text-xs text-muted-foreground">{user.email}</span></DropdownMenuLabel>
@@ -129,17 +152,17 @@ function Portal() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+        <main className="mx-auto w-full max-w-[1500px] space-y-4 px-4 py-6 sm:px-7 sm:py-7">
           {isLoading ? <div className="space-y-4">{[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-card" />)}</div> : roles.length === 0 ? (
             <Card title="Awaiting access"><p className="text-muted-foreground">Your account is registered. The school office will assign your access (teacher, student or parent) shortly.</p></Card>
           ) : (
             <>
-              {s === "overview" && <OverviewHeader firstName={firstName} roles={roles} />}
+              {s === "overview" ? <OverviewHeader firstName={firstName} roles={roles} /> : <PageIntro section={s} family={isFamily} title={current?.label ?? "Portal"} />}
               {isLeader && s === "overview" && <LeaderOverview roles={roles} />}
               {isLeader && <AdminArea roles={roles} userId={user.id} show={s} />}
               {isTeacher && (s === "overview" || s === "classes") && <>
                 {s === "overview" && <div className="grid gap-4 sm:max-w-sm">
-                  <Link to="/portal" search={{ s: "gradebook" }} className="rounded-2xl border bg-card p-5 transition-colors hover:border-primary"><p className="text-sm text-muted-foreground">Marks still in draft</p><p className="mt-1 text-3xl font-extrabold text-primary"><DraftCount userId={user.id} /></p><p className="mt-2 text-xs text-muted-foreground">Open the gradebook to review and publish</p></Link>
+                  <Link to="/portal" search={{ s: "gradebook" }} className="portal-stat block transition-colors hover:border-primary"><p className="text-xs text-muted-foreground">Marks still in draft</p><p className="portal-stat-value mt-1"><DraftCount userId={user.id} /></p><p className="mt-1 text-[11px] text-muted-foreground">Open the gradebook to review and publish</p></Link>
                 </div>}
                 <MyClasses userId={user.id} show={s} />
               </>}
@@ -148,7 +171,7 @@ function Portal() {
               {isFamily && <>
                 {kids.length > 1 && <div role="tablist" aria-label="Choose child" className="flex flex-wrap gap-2">{kids.map((k) => (
                   <button key={k.id} role="tab" aria-selected={kid?.id === k.id} onClick={() => setKidId(k.id)} className={`rounded-full border px-4 py-2 text-sm font-bold ${kid?.id === k.id ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>{k.full_name}</button>))}</div>}
-                {s === "overview" && <section className="rounded-2xl border bg-card p-5">
+                {s === "overview" && <section className="portal-panel p-5">
                   <p className="text-sm text-muted-foreground">Student overview</p>
                   <h2 className="mt-1 text-2xl font-extrabold">{kid ? kid.full_name : "No student linked yet"}</h2>
                   <p className="mt-1 text-primary">{kid ? `${kid.class_name} · School year ${schoolYear()}` : "The school office will link your account to a student."}</p>
@@ -174,9 +197,9 @@ function UpcomingEvents() {
 
 function Card({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border bg-card p-6">
-      <div className="mb-4 flex items-center justify-between gap-4"><h2 className="text-xl font-extrabold">{title}</h2>{action}</div>
-      {children}
+    <section className="portal-panel">
+      <div className="portal-panel-head"><h2>{title}</h2>{action}</div>
+      <div className="portal-panel-body">{children}</div>
     </section>
   );
 }
@@ -270,10 +293,13 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
   const PER = 10; const pages = Math.max(1, Math.ceil(filtered.length / PER)); const shown = filtered.slice(page * PER, page * PER + PER);
   const [uq, setUq] = useState("");
   const people = profiles.filter((p) => (isAdmin || p.roles.some((r) => r === "teacher") || p.roles.length === 0) && `${p.full_name} ${p.email}`.toLowerCase().includes(uq.toLowerCase()));
+  const collected = fees.filter((fee) => fee.status === "paid").reduce((sum, fee) => sum + Number(fee.amount), 0);
+  const outstanding = fees.filter((fee) => fee.status === "unpaid").reduce((sum, fee) => sum + Number(fee.amount), 0);
+  const receiptsIssued = fees.filter((fee) => fee.status === "paid" && fee.receipt_no).length;
 
   return (
     <>
-      {show === "staff" && <Card title={isAdmin ? "Staff & accounts" : "Teachers & access"}>
+      {show === "staff" && <Card title={isAdmin ? "People & role access" : "Teachers & access"}>
         <p className="mb-3 text-sm text-muted-foreground">To add a staff member or parent, ask them to create an account on the portal sign-in page, then tick their access here.</p>
         <input value={uq} onChange={(e) => setUq(e.target.value)} placeholder="Search by name or email" className={field + " mb-3 max-w-sm"} aria-label="Search people" />
         <div className="overflow-x-auto">
@@ -291,7 +317,7 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
         </div>
       </Card>}
 
-      {show === "students" && <Card title="Students">
+      {show === "students" && <Card title="Student directory">
         <form key={editingId ?? "new"} onSubmit={addStudent} className="mb-5 grid gap-3 md:grid-cols-5">
           <input name="name" defaultValue={editing?.full_name} required placeholder="Student full name" className={field} aria-label="Student full name" />
           <input name="class" list="class-list" defaultValue={editing?.class_name} required placeholder="Class e.g. Basic 4" className={field} aria-label="Class" />
@@ -310,13 +336,18 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
         </div>
         {filtered.length === 0 ? <p className="text-muted-foreground">{students.length ? "No students match these filters." : "No students yet."}</p> : (<>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-muted-foreground"><th className="py-2">Name</th><th>Class</th><th>Student login</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>{shown.map((s) => <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td><td>{s.class_name}</td><td>{userName(s.student_user_id)}</td><td>{userName(s.guardian_user_id)}</td><td><span className={s.active ? "rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground" : "rounded-full bg-muted px-2 py-0.5 text-xs font-bold"}>{s.active ? "Active" : "Inactive"}</span></td><td className="whitespace-nowrap"><Button variant="link" onClick={() => { setEditingId(s.id); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`Edit ${s.full_name}`}>Edit</Button><Button variant="link" onClick={() => toggleActive(s.id, s.active)}>{s.active ? "Deactivate" : "Reactivate"}</Button></td></tr>)}</tbody></table></div>
+            <tbody>{shown.map((s) => <tr key={s.id} className="border-t"><td className="py-2 font-semibold">{s.full_name}</td><td>{s.class_name}</td><td>{userName(s.student_user_id)}</td><td>{userName(s.guardian_user_id)}</td><td><span className={`portal-badge ${s.active ? "portal-badge-green" : "portal-badge-gray"}`}>{s.active ? "Active" : "Inactive"}</span></td><td className="whitespace-nowrap"><Button variant="link" onClick={() => { setEditingId(s.id); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`Edit ${s.full_name}`}>Edit</Button><Button variant="link" onClick={() => toggleActive(s.id, s.active)}>{s.active ? "Deactivate" : "Reactivate"}</Button></td></tr>)}</tbody></table></div>
           <div className="mt-3 flex items-center justify-between text-sm"><span className="text-muted-foreground">{filtered.length} students · page {page + 1} of {pages}</span>
             <span className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button><Button variant="outline" size="sm" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</Button></span></div>
         </>)}
       </Card>}
 
-      {show === "fees" && isAdmin && <Card title="Fees & receipts">
+      {show === "fees" && isAdmin && <Card title="Fees and payment records">
+        <div className="mb-5 flex flex-wrap gap-3">
+          <div className="portal-fee-chip"><small>Total collected</small><b>{cedi(collected)}</b></div>
+          <div className="portal-fee-chip"><small>Outstanding balance</small><b>{cedi(outstanding)}</b></div>
+          <div className="portal-fee-chip"><small>Receipts issued</small><b>{receiptsIssued}</b></div>
+        </div>
         <form onSubmit={addFee} className="mb-5 grid gap-3 md:grid-cols-6">
           <select name="student" required className={field} aria-label="Student"><option value="">Student…</option>{students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
           <input name="description" required placeholder="e.g. Term 1 tuition" className={field} aria-label="Fee description" />
@@ -347,7 +378,7 @@ function FeeTable({ fees, onPay }: { fees: FeeRow[]; onPay?: (id: string) => voi
         <tbody>{fees.map((f) => (
           <tr key={f.id} className="border-t">
             <td className="py-2 font-semibold">{f.students?.full_name}</td><td>{f.description}</td><td>{cedi(f.amount)}</td>
-            <td><span className={f.status === "paid" ? "rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground" : "rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground"}>{f.status === "paid" ? "Paid" : "Unpaid"}</span></td>
+            <td><span className={`portal-badge ${f.status === "paid" ? "portal-badge-green" : "portal-badge-gold"}`}>{f.status === "paid" ? "Paid" : "Unpaid"}</span></td>
             <td>{f.status === "paid"
               ? <Link to="/receipt/$id" params={{ id: f.id }} className="font-bold text-primary">{f.receipt_no}</Link>
               : onPay ? <button onClick={() => onPay(f.id)} className="font-bold text-primary">Record payment</button> : "—"}</td>
@@ -401,7 +432,7 @@ function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: {
       (data ?? []).map((m) => [m.students?.full_name, m.students?.class_name, m.subject, m.assessment, m.term, m.score, m.max_score, m.published ? "Yes" : "No"]));
   }
   return (
-    <Card title="Reports">
+    <Card title="Report downloads">
       <p className="mb-4 text-sm text-muted-foreground">Download PDF reports, each titled and stamped with the date it was generated.</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" onClick={() => downloadPdfReport("Fees & Payments Report", feeHead, fees.map(feeRow))}>Fees & payments</Button>
@@ -452,9 +483,9 @@ function FamilyArea({ studentId, compact }: { studentId: string | null; compact?
   const owed = fees.filter((f) => f.status === "unpaid").reduce((s, f) => s + Number(f.amount), 0);
   const paid = fees.filter((f) => f.status === "paid");
   if (compact) return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <Link to="/portal" search={{ s: "fees" }} className="rounded-2xl border bg-card p-5 hover:border-primary"><p className="text-sm text-muted-foreground">Fee balance due</p><p className={`mt-1 text-2xl font-extrabold ${owed > 0 ? "text-destructive" : "text-primary"}`}>{cedi(owed)}</p></Link>
-      <Link to="/portal" search={{ s: "fees" }} className="rounded-2xl border bg-card p-5 hover:border-primary"><p className="text-sm text-muted-foreground">Receipts available</p><p className="mt-1 text-2xl font-extrabold text-primary">{paid.length}</p></Link>
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <Link to="/portal" search={{ s: "fees" }} className="portal-stat hover:border-primary"><p className="text-xs text-muted-foreground">Fee balance due</p><p className={`portal-stat-value mt-1 ${owed > 0 ? "text-destructive" : ""}`}>{cedi(owed)}</p></Link>
+      <Link to="/portal" search={{ s: "fees" }} className="portal-stat hover:border-primary"><p className="text-xs text-muted-foreground">Receipts available</p><p className="portal-stat-value mt-1">{paid.length}</p></Link>
     </div>
   );
   return (

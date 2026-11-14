@@ -22,7 +22,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { cedi } from "@/lib/money";
 import type { Role } from "@/lib/portal-access";
 import { feeCollectionByMonth, greetingFor, learningStageCount } from "@/lib/portal-overview";
-import type { SectionId } from "@/lib/portal-nav";
+import { schoolYear, type SectionId } from "@/lib/portal-nav";
 
 type Student = Database["public"]["Tables"]["students"]["Row"];
 type Fee = Database["public"]["Tables"]["fees"]["Row"] & {
@@ -32,15 +32,15 @@ type Event = Database["public"]["Tables"]["events"]["Row"];
 
 function Panel({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl border bg-card">
-      <div className="flex items-start justify-between gap-4 border-b px-5 py-4 sm:px-6">
+    <section className="portal-panel">
+      <div className="portal-panel-head">
         <div>
-          <h2 className="text-lg font-extrabold">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+          <h2>{title}</h2>
+          {subtitle && <p>{subtitle}</p>}
         </div>
         {action}
       </div>
-      <div className="p-5 sm:p-6">{children}</div>
+      <div className="portal-panel-body">{children}</div>
     </section>
   );
 }
@@ -65,17 +65,15 @@ export function OverviewHeader({ firstName, roles }: { firstName: string; roles:
       : "Keep up with learning, homework, results and fee receipts.";
 
   return (
-    <section className="flex flex-col justify-between gap-5 2xl:flex-row 2xl:items-end">
+    <section className="portal-page-heading">
       <div>
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-primary">
-          {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}
-        </p>
-        <h2 className="mt-2 text-3xl font-extrabold sm:text-4xl">{greetingFor(now)}{firstName ? `, ${firstName}` : ""}</h2>
-        <p className="mt-2 text-muted-foreground">{subtitle}</p>
+        <p className="portal-overline">His Grace Academy · {schoolYear()}</p>
+        <h1>{greetingFor(now)}{firstName ? `, ${firstName}` : ""}</h1>
+        <p>{subtitle}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => (
-          <Link key={action.section} to="/portal" search={{ s: action.section }} className={action.primary ? "btn-primary" : "inline-flex items-center gap-2 rounded-full border bg-card px-4 py-3 text-sm font-bold transition-colors hover:border-primary hover:text-primary"}>
+          <Link key={action.section} to="/portal" search={{ s: action.section }} className={action.primary ? "btn-primary" : "inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-muted"}>
             <Plus className="h-4 w-4" />{action.label}
           </Link>
         ))}
@@ -85,15 +83,15 @@ export function OverviewHeader({ firstName, roles }: { firstName: string; roles:
 }
 
 function MetricCard({ label, value, note, icon: Icon, tone = "primary" }: { label: string; value: string | number; note: string; icon: LucideIcon; tone?: "primary" | "secondary" | "destructive" }) {
-  const toneClass = tone === "secondary" ? "bg-secondary/25 text-secondary-foreground" : tone === "destructive" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary";
+  const toneClass = tone === "secondary" ? "portal-stat-icon-secondary" : tone === "destructive" ? "portal-stat-icon-destructive" : "";
   return (
-    <div className="rounded-2xl border bg-card p-5">
+    <div className="portal-stat">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-semibold text-muted-foreground">{label}</p>
-        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${toneClass}`}><Icon className="h-5 w-5" /></span>
+        <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+        <span className={`portal-stat-icon ${toneClass}`}><Icon className="h-4 w-4" /></span>
       </div>
-      <p className="mt-2 text-3xl font-extrabold tracking-tight">{value}</p>
-      <p className="mt-2 text-xs text-muted-foreground">{note}</p>
+      <p className="portal-stat-value mt-2">{value}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{note}</p>
     </div>
   );
 }
@@ -207,7 +205,7 @@ function RecentlyAddedStudents({ students }: { students: Student[] }) {
                   <td className="py-3 pr-3"><span className="flex items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary/25 text-xs font-extrabold text-secondary-foreground">{initials}</span><b>{student.full_name}</b></span></td>
                   <td>{student.class_name}</td>
                   <td className="whitespace-nowrap text-muted-foreground">{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(student.created_at))}</td>
-                  <td><span className={student.active ? "rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary" : "rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground"}>{student.active ? "Active" : "Inactive"}</span></td>
+                  <td><span className={`portal-badge ${student.active ? "portal-badge-green" : "portal-badge-gray"}`}>{student.active ? "Active" : "Inactive"}</span></td>
                 </tr>
               );
             })}</tbody>
@@ -258,7 +256,7 @@ export function LeaderOverview({ roles }: { roles: Role[] }) {
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard label="Active students" value={active} note={`${students.length} student records in total`} icon={GraduationCap} />
         <MetricCard label="Teachers" value={teachers} note="Accounts with teacher access" icon={Users} />
         <MetricCard label="Classes" value={classes.length} note={classes.length ? `Across ${learningStageCount(classes)} learning stages` : "Classes appear as students are added"} icon={School} tone="secondary" />
