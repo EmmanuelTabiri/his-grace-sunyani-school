@@ -4,7 +4,7 @@ export type SectionId = "overview" | "students" | "staff" | "classes" | "gradebo
 export type Section = { id: SectionId; label: string };
 
 const L: Record<SectionId, string> = {
-  overview: "Dashboard", students: "Students", staff: "Staff & accounts", classes: "Classes & subjects", gradebook: "Gradebook",
+  overview: "Overview", students: "Students", staff: "Staff & accounts", classes: "Classes & subjects", gradebook: "Gradebook",
   marks: "Marks", results: "Results", homework: "Homework", announcements: "Announcements & events", diary: "Class diary",
   fees: "Fees & receipts", reports: "Reports",
 };

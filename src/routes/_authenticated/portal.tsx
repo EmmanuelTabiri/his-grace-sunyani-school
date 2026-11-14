@@ -3,11 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import logo from "@/assets/school-logo.png.asset.json";
-import { Bell, BookOpen, CalendarDays, ClipboardList, GraduationCap, LayoutDashboard, Megaphone, Menu, NotebookPen, Receipt, School, Table2, UserCog, Users, FileSpreadsheet, type LucideIcon } from "lucide-react";
+import { Bell, BookOpen, ClipboardList, FileText, GraduationCap, LayoutDashboard, Megaphone, Menu, NotebookPen, Receipt, School, Table2, UserCog, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cedi } from "@/lib/money";
 import { downloadPdfReport } from "@/lib/report-pdf";
 import { StaffTools, FamilyLearning, MyClasses, Gradebook, DraftCount } from "@/components/portal/Classroom";
+import { EventsPanel, LeaderOverview, OverviewHeader } from "@/components/portal/Overview";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/portal")({
 });
 
 const field = "w-full rounded-xl border bg-background px-3 py-2";
-const ICONS: Record<SectionId, LucideIcon> = { overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileSpreadsheet };
+const ICONS: Record<SectionId, LucideIcon> = { overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileText };
 
 function Portal() {
   const { user } = Route.useRouteContext();
@@ -54,25 +55,43 @@ function Portal() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+  const managementIds: SectionId[] = ["staff", "fees", "reports"];
+  const orderedSections = isLeader ? [...sections].sort((a, b) => Number(managementIds.includes(a.id)) - Number(managementIds.includes(b.id))) : sections;
   const nav = (
-    <nav aria-label="Portal sections" className="space-y-1">
-      {sections.map((x) => { const Icon = ICONS[x.id]; const active = x.id === s; return (
-        <Link key={x.id} to="/portal" search={{ s: x.id }} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}
-          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${active ? "bg-secondary text-secondary-foreground" : "text-navy-foreground/85 hover:bg-navy-foreground/10"}`}>
-          <Icon className="h-4 w-4 shrink-0" />{x.label}
-        </Link>); })}
+    <nav aria-label="Portal sections" className="flex-1 space-y-1 overflow-y-auto">
+      {orderedSections.map((x, index) => {
+        const Icon = ICONS[x.id];
+        const active = x.id === s;
+        const management = isLeader && managementIds.includes(x.id);
+        const previousManagement = index > 0 && isLeader && managementIds.includes(orderedSections[index - 1]?.id ?? "overview");
+        return (
+          <div key={x.id}>
+            {(index === 0 || management !== previousManagement) && <p className="px-3 pb-2 pt-4 text-[10px] font-extrabold uppercase tracking-[0.16em] text-navy-foreground/55">{management ? "Administration" : "Workspace"}</p>}
+            <Link to="/portal" search={{ s: x.id }} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${active ? "bg-secondary text-secondary-foreground" : "text-navy-foreground/85 hover:bg-navy-foreground/10"}`}>
+              <Icon className="h-4 w-4 shrink-0" />{x.label}
+            </Link>
+          </div>
+        );
+      })}
     </nav>
   );
   const brand = (
     <Link to="/" className="flex items-center gap-2">
       <img src={logo.url} alt="His Grace Academy logo" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-background object-contain" />
-      <span className="min-w-0 leading-tight"><span className="block truncate font-display font-extrabold">His Grace Academy</span><span className="block text-xs opacity-75">School year {schoolYear()}</span></span>
+      <span className="min-w-0 leading-tight"><span className="block truncate font-display font-extrabold">His Grace Academy</span><span className="mt-1 block text-xs opacity-75">School Portal · Sunyani</span></span>
     </Link>
   );
 
   return (
     <div className="flex min-h-screen w-full bg-muted">
-      {roles.length > 0 && <aside className="hidden w-64 shrink-0 flex-col gap-6 bg-navy p-4 text-navy-foreground lg:flex">{brand}{nav}</aside>}
+      {roles.length > 0 && <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-5 bg-navy p-4 text-navy-foreground lg:flex">
+        <div className="border-b border-navy-foreground/15 pb-5">{brand}</div>{nav}
+        <div className="flex items-center gap-3 border-t border-navy-foreground/15 pt-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary font-extrabold text-secondary-foreground">{firstName.charAt(0).toUpperCase() || "?"}</span>
+          <span className="min-w-0"><b className="block truncate text-sm">{me?.full_name || "My account"}</b><span className="block truncate text-xs text-navy-foreground/65">{roles.map(roleLabel).join(", ")}</span></span>
+        </div>
+      </aside>}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b bg-card">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6">
@@ -81,10 +100,11 @@ function Portal() {
                 <SheetTrigger asChild><button className="rounded-lg border p-2 lg:hidden" aria-label="Open menu"><Menu className="h-5 w-5" /></button></SheetTrigger>
                 <SheetContent side="left" className="w-72 border-0 bg-navy p-4 text-navy-foreground"><SheetTitle className="sr-only">Portal menu</SheetTitle><div className="space-y-6">{brand}{nav}</div></SheetContent>
               </Sheet>}
-              <div className="min-w-0"><h1 className="truncate text-lg font-extrabold sm:text-xl">{current?.label ?? "Portal"}</h1>
-                <p className="hidden truncate text-sm text-muted-foreground sm:block">Welcome, {firstName} · {roles.map(roleLabel).join(", ") || "awaiting access"}</p></div>
+              <div className="min-w-0"><p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">Portal</span><span className="mx-2">/</span>{current?.label ?? "Overview"}</p>
+                <h1 className="mt-0.5 truncate text-lg font-extrabold sm:text-xl">{current?.label ?? "Portal"}</h1></div>
             </div>
             <div className="flex items-center gap-2">
+              <span className="hidden rounded-full bg-muted px-3 py-2 text-xs font-bold text-muted-foreground md:block">{schoolYear()}</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><button className="relative rounded-full border p-2" aria-label={`Notifications, ${fresh.length} new`}><Bell className="h-5 w-5" />{fresh.length > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-xs font-bold text-secondary-foreground">{fresh.length}</span>}</button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
@@ -94,7 +114,10 @@ function Portal() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild><button className="grid h-10 w-10 place-items-center rounded-full bg-primary font-bold text-primary-foreground" aria-label="Profile menu">{firstName.charAt(0).toUpperCase() || "?"}</button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild><button className="flex items-center gap-2 rounded-full p-1 text-left transition-colors hover:bg-muted" aria-label="Profile menu">
+                  <span className="hidden min-w-0 sm:block"><b className="block max-w-40 truncate text-xs">{me?.full_name || "My account"}</b><span className="block text-xs text-muted-foreground">{roles.map(roleLabel).join(", ") || "Awaiting access"}</span></span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary font-extrabold text-secondary-foreground">{firstName.charAt(0).toUpperCase() || "?"}</span>
+                </button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel className="font-normal"><span className="block font-semibold">{me?.full_name || "My account"}</span><span className="text-xs text-muted-foreground">{user.email}</span></DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -106,17 +129,17 @@ function Portal() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
           {isLoading ? <div className="space-y-4">{[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-card" />)}</div> : roles.length === 0 ? (
             <Card title="Awaiting access"><p className="text-muted-foreground">Your account is registered. The school office will assign your access (teacher, student or parent) shortly.</p></Card>
           ) : (
             <>
+              {s === "overview" && <OverviewHeader firstName={firstName} roles={roles} />}
+              {isLeader && s === "overview" && <LeaderOverview roles={roles} />}
               {isLeader && <AdminArea roles={roles} userId={user.id} show={s} />}
               {isTeacher && (s === "overview" || s === "classes") && <>
-                {s === "overview" && <div className="grid gap-4 sm:grid-cols-3">
-                  <Link to="/portal" search={{ s: "gradebook" }} className="rounded-2xl border bg-card p-5 hover:border-primary"><p className="text-sm text-muted-foreground">Marks still in draft</p><p className="mt-1 text-2xl font-extrabold text-primary"><DraftCount userId={user.id} /></p></Link>
-                  <Link to="/portal" search={{ s: "marks" }} className="btn-primary justify-center self-center">Enter marks</Link>
-                  <Link to="/portal" search={{ s: "homework" }} className="btn-sun justify-center self-center">Create homework</Link>
+                {s === "overview" && <div className="grid gap-4 sm:max-w-sm">
+                  <Link to="/portal" search={{ s: "gradebook" }} className="rounded-2xl border bg-card p-5 transition-colors hover:border-primary"><p className="text-sm text-muted-foreground">Marks still in draft</p><p className="mt-1 text-3xl font-extrabold text-primary"><DraftCount userId={user.id} /></p><p className="mt-2 text-xs text-muted-foreground">Open the gradebook to review and publish</p></Link>
                 </div>}
                 <MyClasses userId={user.id} show={s} />
               </>}
@@ -125,10 +148,10 @@ function Portal() {
               {isFamily && <>
                 {kids.length > 1 && <div role="tablist" aria-label="Choose child" className="flex flex-wrap gap-2">{kids.map((k) => (
                   <button key={k.id} role="tab" aria-selected={kid?.id === k.id} onClick={() => setKidId(k.id)} className={`rounded-full border px-4 py-2 text-sm font-bold ${kid?.id === k.id ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>{k.full_name}</button>))}</div>}
-                {s === "overview" && <section className="rounded-2xl bg-navy p-6 text-navy-foreground">
-                  <p className="text-sm opacity-80">Hello {firstName} 👋</p>
+                {s === "overview" && <section className="rounded-2xl border bg-card p-5">
+                  <p className="text-sm text-muted-foreground">Student overview</p>
                   <h2 className="mt-1 text-2xl font-extrabold">{kid ? kid.full_name : "No student linked yet"}</h2>
-                  <p className="mt-1 text-secondary">{kid ? `${kid.class_name} · School year ${schoolYear()}` : "The school office will link your account to a student."}</p>
+                  <p className="mt-1 text-primary">{kid ? `${kid.class_name} · School year ${schoolYear()}` : "The school office will link your account to a student."}</p>
                 </section>}
                 {kids.length === 0 && s !== "overview" ? <Card title="No student linked"><p className="text-muted-foreground">Once the school links your account to a student, their records appear here.</p></Card> : <>
                   {(s === "overview" || s === "fees") && <FamilyArea studentId={kid?.id ?? null} compact={s === "overview"} />}
@@ -145,16 +168,7 @@ function Portal() {
 }
 
 function UpcomingEvents() {
-  const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: async () => (await supabase.from("events").select("*").order("event_date")).data ?? [] });
-  const today = new Date().toISOString().slice(0, 10);
-  const next = events.filter((e) => e.event_date >= today).slice(0, 5);
-  return (
-    <Card title="Upcoming events">
-      {isLoading ? <p className="text-muted-foreground">Loading…</p> : next.length === 0 ? <p className="text-muted-foreground">No upcoming events.</p> : (
-        <ul className="space-y-2">{next.map((e) => <li key={e.id} className="flex items-center gap-3 rounded-xl border p-3 text-sm"><CalendarDays className="h-5 w-5 shrink-0 text-primary" /><span className="min-w-0"><b>{e.title}</b><span className="block text-muted-foreground">{e.event_date}{e.place && ` · ${e.place}`}</span></span></li>)}</ul>
-      )}
-    </Card>
-  );
+  return <EventsPanel />;
 }
 
 
@@ -191,8 +205,6 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
   const { data: students = [] } = useStudents();
   const { data: fees = [] } = useFees(isAdmin);
   const editing = students.find((s) => s.id === editingId);
-  const outstanding = fees.filter((f) => f.status === "unpaid").reduce((s, f) => s + Number(f.amount), 0);
-  const collected = fees.filter((f) => f.status === "paid").reduce((s, f) => s + Number(f.amount), 0);
   const refresh = () => qc.invalidateQueries();
 
   async function toggleRole(targetUserId: string, role: Role, has: boolean) {
@@ -261,31 +273,6 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
 
   return (
     <>
-      {show === "overview" && <>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {[["Students", students.filter((s) => s.active).length], ["Teachers", profiles.filter((p) => p.roles.includes("teacher")).length], ["Classes", classes.length], ...(isAdmin ? [["Fees collected", cedi(collected)], ["Outstanding", cedi(outstanding)]] : [["Portal users", profiles.length]])].map(([k, v]) => (
-            <div key={k} className="rounded-2xl border bg-card p-5"><p className="text-sm text-muted-foreground">{k}</p><p className="mt-1 text-2xl font-extrabold text-primary">{v}</p></div>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link to="/portal" search={{ s: "students" }} className="btn-primary">+ Add student</Link>
-          <Link to="/portal" search={{ s: "staff" }} className="btn-sun">+ Add staff member</Link>
-          <Link to="/portal" search={{ s: "classes" }} className="btn-sun">+ Create class</Link>
-          {isAdmin && <Link to="/portal" search={{ s: "fees" }} className="btn-sun">Record payment</Link>}
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card title="Recent activity">
-            {fees.length + students.length === 0 ? <p className="text-muted-foreground">Nothing yet — activity appears here as you add students and payments.</p> : (
-              <ul className="space-y-2 text-sm">{[
-                ...fees.filter((f) => f.status === "paid").map((f) => ({ t: f.paid_on ?? f.created_at, txt: `Payment ${cedi(f.amount)} — ${f.students?.full_name ?? ""}` })),
-                ...students.map((s) => ({ t: s.created_at, txt: `Student added — ${s.full_name} (${s.class_name})` })),
-              ].sort((a, b) => b.t.localeCompare(a.t)).slice(0, 6).map((a, i) => <li key={i} className="flex justify-between gap-3 rounded-xl border p-3"><span className="min-w-0 truncate">{a.txt}</span><span className="shrink-0 text-muted-foreground">{a.t.slice(0, 10)}</span></li>)}</ul>
-            )}
-          </Card>
-          <UpcomingEvents />
-        </div>
-      </>}
-
       {show === "staff" && <Card title={isAdmin ? "Staff & accounts" : "Teachers & access"}>
         <p className="mb-3 text-sm text-muted-foreground">To add a staff member or parent, ask them to create an account on the portal sign-in page, then tick their access here.</p>
         <input value={uq} onChange={(e) => setUq(e.target.value)} placeholder="Search by name or email" className={field + " mb-3 max-w-sm"} aria-label="Search people" />
