@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Adapt the uploaded public website reference while preserving school identity and private portals
 - [x] Apply the shared Merlin dashboard model to the portal with real data and existing role permissions
 - [x] Polish public imagery, enquiry feedback, role messaging, and desktop/mobile interactions
 - [x] Use supplied Google Drive school photographs in the public gallery

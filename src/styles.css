@@ -114,6 +114,7 @@
   --font-display: Georgia, 'Times New Roman', serif;
   --public-photo-shade: linear-gradient(90deg, oklch(0.18 0.045 258 / .92) 0%, oklch(0.18 0.045 258 / .7) 36%, oklch(0.18 0.045 258 / .08) 100%);
   --public-shadow: 0 12px 30px oklch(0.25 0.05 258 / .08);
+  --public-stage-shade: linear-gradient(0deg, oklch(0.18 0.045 258 / .96), oklch(0.18 0.045 258 / .12) 90%);
   background: var(--background);
   color: var(--foreground);
 }
@@ -122,6 +123,14 @@
 .public-site .container-page { max-width: 80rem; padding-inline: 2rem; }
 .public-site .public-nav { color: var(--muted-foreground); padding-block: .5rem; border-bottom: 2px solid transparent; }
 .public-site .public-nav:hover, .public-site .public-nav-active { color: var(--primary); border-bottom: 2px solid var(--secondary); }
+.public-site .public-header .container-page { height: 86px; }
+.public-site .school-wordmark > span:first-child { font-family: var(--font-display); }
+.public-site .public-value:last-child { border-right: 0; }
+.public-site .public-stage-shade { background: var(--public-stage-shade); }
+.public-site .public-stage img { transition: transform .35s ease; }
+.public-site .public-stage:hover img { transform: scale(1.035); }
+.public-site .public-school-life .public-eyebrow { color: var(--secondary); }
+.public-site .public-image-note { background: var(--navy); padding: .45rem .65rem; border-radius: 4px; }
 .public-site .public-eyebrow { color: var(--primary); font-family: var(--font-sans); font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .public-site .public-hero { min-height: 570px; }
 .public-site .hero-shade { background: var(--public-photo-shade); }
@@ -135,11 +144,13 @@
 @media (max-width: 767px) {
   .public-site .container-page { padding-inline: 1.25rem; }
   .public-site .public-header .container-page { height: 80px; }
-  .public-site .public-hero { min-height: 480px; }
+  .public-site .public-hero { min-height: 510px; }
   .public-site .public-hero .container-page { padding-block: 2.5rem; }
   .public-site .public-hero h1 { font-size: 3rem; }
   .public-site .hero-shade { background: linear-gradient(90deg, oklch(0.18 0.045 258 / .92), oklch(0.18 0.045 258 / .6)); }
   .public-site .public-hero + section { padding-top: 2rem; }
+  .public-site .public-hero .container-page { padding-bottom: 5rem; }
+  .public-site .public-image-note { left: 1.25rem; right: auto; text-align: left; }
 }
 @media (max-width: 379px) { .public-site .school-wordmark > span:first-child { font-size: 1rem; } }
 @media (prefers-reduced-motion: reduce) { .public-site *, .public-site *::before, .public-site *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

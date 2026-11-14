@@ -15,11 +15,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return <div className="public-site flex min-h-screen flex-col">
     <a href="#main-content" className="skip-link">Skip to content</a>
+    <div className="public-topline bg-navy text-navy-foreground"><div className="container-page flex flex-wrap items-center justify-between gap-2 py-2 text-xs"><span>Welcome to His Grace Academy · Penkwase, Sunyani</span><Link to="/contact" className="hidden items-center gap-2 text-secondary sm:inline-flex">Get in touch with us<ArrowRight size={13}/></Link></div></div>
     <header className="public-header sticky top-0 z-40 border-b bg-background">
       <div className="container-page flex h-24 items-center justify-between gap-4">
         <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="His Grace Academy home">
           <img src={logo.url} alt="His Grace Academy crest" width={60} height={60} className="h-14 w-14 shrink-0 object-contain"/>
-          <span className="school-wordmark"><span className="block text-xl font-bold">His Grace Academy</span><span className="mt-1 block text-xs text-muted-foreground">Penkwase · Sunyani</span></span>
+           <span className="school-wordmark"><span className="block text-xl font-bold">His Grace Academy</span><span className="mt-1 block text-xs text-muted-foreground">Penkwase · Sunyani, Ghana</span></span>
         </Link>
         <nav className="hidden items-center gap-5 xl:flex" aria-label="Main navigation">{nav.map(n => <Link key={n.to} to={n.to} activeOptions={{exact:n.to==='/'}} className="public-nav text-sm font-semibold" activeProps={{className:'public-nav-active'}}>{n.label}</Link>)}</nav>
         <div className="flex items-center gap-3">
@@ -47,5 +48,5 @@ export function Crest({ className = 'h-16 w-16', rounded = 'rounded-lg' }: { cla
 export function PageHeader({ eyebrow, title, intro }: { eyebrow: string; title: string; intro?: string }) {
   return <section className="public-page-heading bg-muted"><div className="container-page py-14 md:py-20"><div className="mb-6 flex items-center gap-2 text-xs text-muted-foreground"><Link to="/" className="hover:text-primary">Home</Link><span>/</span><span>{eyebrow}</span></div><span className="public-eyebrow">His Grace Academy · {eyebrow}</span><h1 className="mt-4 max-w-3xl text-4xl leading-tight md:text-5xl">{title}</h1>{intro && <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">{intro}</p>}</div></section>;
 }
-export function AdmissionsCTA() { return <section className="bg-muted"><div className="container-page flex flex-col items-start justify-between gap-8 py-14 md:flex-row md:items-center"><div><span className="public-eyebrow">Your next chapter</span><h2 className="mt-3 text-3xl md:text-4xl">Let’s talk about your child’s future.</h2><p className="mt-3 text-muted-foreground">Connect with His Grace Academy in Penkwase, Sunyani.</p></div><Button asChild variant="secondary" className="h-12 shrink-0 px-6"><Link to="/contact">Make an enquiry<ArrowRight/></Link></Button></div></section>; }
+export function AdmissionsCTA() { return <section className="public-admissions-cta bg-accent"><div className="container-page flex flex-col items-start justify-between gap-8 py-14 md:flex-row md:items-center"><div><span className="public-eyebrow">Your next chapter</span><h2 className="mt-3 text-3xl md:text-4xl">Let’s talk about your child’s future.</h2><p className="mt-3 text-muted-foreground">Connect with His Grace Academy in Penkwase, Sunyani.</p></div><Button asChild className="h-12 shrink-0 px-6"><Link to="/contact">Make an enquiry<ArrowRight/></Link></Button></div></section>; }
 export function meta(title: string, description: string) { return {meta:[{title:`${title} | His Grace Academy`},{name:'description',content:description},{property:'og:title',content:`${title} | His Grace Academy`},{property:'og:description',content:description},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}; }
