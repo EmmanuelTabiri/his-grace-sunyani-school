@@ -244,7 +244,6 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
   const isAdmin = roles.includes("admin");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [studentOpen, setStudentOpen] = useState(false);
-  const [feeOpen, setFeeOpen] = useState(false);
   const [accessUserId, setAccessUserId] = useState<string | null>(null);
   const qc = useQueryClient();
   const { data: profiles = [] } = useProfiles();
@@ -285,39 +284,13 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
     else { toast.success(editingId ? "Student updated" : "Student added"); setStudentOpen(false); setEditingId(null); refresh(); }
   }
 
-  async function addFee(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const amount = Number(f.get("amount"));
-    if (!(amount > 0)) { toast.error("Enter an amount greater than 0"); return; }
-    const paid = f.get("status") === "paid";
-    const { error } = await supabase.from("fees").insert({
-      student_id: String(f.get("student")), description: String(f.get("description")), amount,
-      status: paid ? "paid" : "unpaid", payment_method: paid ? String(f.get("method")) : null,
-    });
-    if (error) toast.error(error.message);
-    else { toast.success(paid ? "Payment recorded — receipt created" : "Fee added"); setFeeOpen(false); refresh(); }
-  }
-
-  async function markPaid(id: string) {
-    const method = prompt("Payment method (Cash, Mobile Money, Bank transfer):", "Mobile Money");
-    if (!method) return;
-    const { error } = await supabase.from("fees").update({ status: "paid", payment_method: method }).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Payment recorded — receipt created"); refresh(); }
-  }
-
   const userName = (id: string | null) => profiles.find((p) => p.id === id)?.full_name || profiles.find((p) => p.id === id)?.email || "—";
   const classes = [...new Set(students.map((s) => s.class_name).filter(Boolean))].sort();
   const [q, setQ] = useState(""); const [cf, setCf] = useState(""); const [sf, setSf] = useState("all"); const [page, setPage] = useState(0);
   const filtered = students.filter((s) => s.full_name.toLowerCase().includes(q.toLowerCase()) && (!cf || s.class_name === cf) && (sf === "all" || (sf === "active") === s.active));
   const PER = 8; const pages = Math.max(1, Math.ceil(filtered.length / PER)); const shown = filtered.slice(page * PER, page * PER + PER);
   const [uq, setUq] = useState("");
-  const [feeQuery, setFeeQuery] = useState(""); const [feeStatus, setFeeStatus] = useState("all");
-  const visibleFees = fees.filter((fee) => (feeStatus === "all" || fee.status === feeStatus) && `${fee.students?.full_name ?? ""} ${fee.receipt_no ?? ""} ${fee.description}`.toLowerCase().includes(feeQuery.toLowerCase()));
   const people = profiles.filter((p) => (isAdmin || p.roles.some((r) => r === "teacher") || p.roles.length === 0) && `${p.full_name} ${p.email}`.toLowerCase().includes(uq.toLowerCase()));
-  const collected = fees.filter((fee) => fee.status === "paid").reduce((sum, fee) => sum + Number(fee.amount), 0);
-  const outstanding = fees.filter((fee) => fee.status === "unpaid").reduce((sum, fee) => sum + Number(fee.amount), 0);
-  const receiptsIssued = fees.filter((fee) => fee.status === "paid" && fee.receipt_no).length;
   const section = show as SectionId;
   const title = portalSections(roles).find((item) => item.id === section)?.label ?? "Portal";
   const pageAction = show === "students"
@@ -379,17 +352,6 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
           </form>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={feeOpen} onOpenChange={setFeeOpen}><DialogContent className="portal-app portal-dialog"><DialogHeader><DialogTitle>Add fee</DialogTitle><DialogDescription>Create a charge or record a payment in Ghana Cedi.</DialogDescription></DialogHeader>
-        <form onSubmit={addFee} className="portal-form-grid">
-          <label className="portal-field portal-field-full"><span>Student</span><select name="student" required className={field}><option value="">Choose student</option>{students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></label>
-          <label className="portal-field portal-field-full"><span>Description</span><input name="description" required placeholder="e.g. Term 1 tuition" className={field} /></label>
-          <label className="portal-field"><span>Amount (GH₵)</span><input name="amount" type="number" step="0.01" min="0.01" required placeholder="0.00" className={field} /></label>
-          <label className="portal-field"><span>Status</span><select name="status" className={field}><option value="unpaid">Unpaid</option><option value="paid">Paid now</option></select></label>
-          <label className="portal-field portal-field-full"><span>Payment method</span><select name="method" className={field}><option>Mobile Money</option><option>Cash</option><option>Bank transfer</option></select></label>
-          <div className="portal-form-actions portal-field-full"><button type="button" className="portal-btn" onClick={() => setFeeOpen(false)}>Cancel</button><button className="btn-primary">Save fee</button></div>
-        </form>
-      </DialogContent></Dialog>
 
       <Dialog open={Boolean(accessProfile)} onOpenChange={(open) => { if (!open) setAccessUserId(null); }}><DialogContent className="portal-app portal-dialog"><DialogHeader><DialogTitle>Edit account</DialogTitle><DialogDescription>{accessProfile?.full_name} · {accessProfile?.email}</DialogDescription></DialogHeader>
         {accessProfile && <div className="space-y-4">
@@ -456,8 +418,8 @@ function EventsCard() {
 function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: { full_name: string; class_name: string; active: boolean; student_user_id: string | null; guardian_user_id: string | null }[]; userName: (id: string | null) => string }) {
   const [cls, setCls] = useState("");
   const classes = [...new Set(students.map((s) => s.class_name))].sort();
-  const feeRow = (f: FeeRow) => [f.students?.full_name, f.students?.class_name, f.description, Number(f.amount).toFixed(2), f.status, f.payment_method, f.paid_on, f.receipt_no];
-  const feeHead = ["Student", "Class", "Description", "Amount (GHS)", "Status", "Method", "Paid on", "Receipt"];
+  const feeRow = (f: FeeRow) => [f.students?.full_name, f.students?.class_name, f.description, Number(f.amount).toFixed(2), Number(f.paid_amount).toFixed(2), (Number(f.amount)-Number(f.paid_amount)).toFixed(2), f.status, f.payment_method, f.paid_on, f.receipt_no];
+  const feeHead = ["Student", "Class", "Description", "Charge (GHS)", "Paid (GHS)", "Balance (GHS)", "Status", "Method", "Paid on", "Receipt"];
   async function marks() {
     let q = supabase.from("marks").select("subject, assessment, term, score, max_score, published, students!inner(full_name, class_name)").order("term");
     if (cls) q = q.eq("students.class_name", cls);
@@ -471,7 +433,7 @@ function ReportsCard({ fees, students, userName }: { fees: FeeRow[]; students: {
       <p className="mb-4 text-sm text-muted-foreground">Download PDF reports, each titled and stamped with the date it was generated.</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" onClick={() => downloadPdfReport("Fees & Payments Report", feeHead, fees.map(feeRow))}>Fees & payments</Button>
-        <Button variant="outline" onClick={() => downloadPdfReport("Unpaid Fees Report", feeHead.slice(0, 5), fees.filter((f) => f.status === "unpaid").map((f) => feeRow(f).slice(0, 5)))}>Unpaid fees</Button>
+        <Button variant="outline" onClick={() => downloadPdfReport("Unpaid Fees Report", feeHead.slice(0, 7), fees.filter((f) => f.status === "unpaid").map((f) => feeRow(f).slice(0, 7)))}>Unpaid fees</Button>
         <Button variant="outline" onClick={() => downloadPdfReport("Student List", ["Name", "Class", "Status", "Student login", "Parent"], students.map((s) => [s.full_name, s.class_name, s.active ? "Active" : "Inactive", userName(s.student_user_id), userName(s.guardian_user_id)]))}>Student list</Button>
         <span className="flex items-center gap-2">
           <select value={cls} onChange={(e) => setCls(e.target.value)} className={field + " !w-auto"} aria-label="Class for marks report"><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select>

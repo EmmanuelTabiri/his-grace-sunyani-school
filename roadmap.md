@@ -1,9 +1,9 @@
 # Roadmap
-- [ ] Daily class attendance, absence summaries, and linked-family attendance views
-- [ ] Guardian contacts and emergency details in student records
-- [ ] Reviewed marks and term report cards before family publication
-- [ ] Partial payments, balances, and individual receipt history (manual recording only)
-- [ ] Targeted notices and school calendar for holidays, exams, and events
+- [x] Daily class attendance, absence summaries, and linked-family attendance views
+- [x] Guardian contacts and emergency details in student records
+- [x] Reviewed marks and term report cards before family publication
+- [x] Partial payments, balances, and individual receipt history (manual recording only)
+- [x] Targeted notices and school calendar for holidays, exams, and events
 - [x] Match the second uploaded portal reference’s layout and styling throughout, preserving real features, data, and permissions
 - [x] Apply the uploaded light admin reference across the whole portal while preserving features, data, and permissions
 - [x] Adapt the uploaded public website reference while preserving school identity and private portals

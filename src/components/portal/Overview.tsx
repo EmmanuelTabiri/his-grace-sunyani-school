@@ -187,8 +187,8 @@ export function LeaderOverview({ roles }: { roles: Role[] }) {
   const classes = [...new Set(students.map((student) => student.class_name))].sort();
   const teachers = new Set(access.filter((row) => row.role === "teacher").map((row) => row.user_id)).size;
   const users = new Set(access.map((row) => row.user_id)).size;
-  const collected = fees.filter((fee) => fee.status === "paid").reduce((sum, fee) => sum + Number(fee.amount), 0);
-  const outstanding = fees.filter((fee) => fee.status === "unpaid").reduce((sum, fee) => sum + Number(fee.amount), 0);
+  const collected = fees.reduce((sum, fee) => sum + Number(fee.paid_amount), 0);
+  const outstanding = fees.reduce((sum, fee) => sum + Number(fee.amount) - Number(fee.paid_amount), 0);
 
   return (
     <>

@@ -217,7 +217,7 @@ export function MyClasses({ userId, show }: { userId: string; show: string }) {
   const upcoming = homework.filter((h) => h.due_date >= today && (!assigned.length || byClass[h.class_name])).slice(0, 8);
   return (
     <>
-      {show === "classes" || show === "overview" && <>
+      {(show === "classes" || show === "overview") && <>
       <Card title="My classes & subjects">
         {assigned.length === 0 ? <p className="text-muted-foreground">No classes assigned to you yet. The administrator or head teacher assigns them.</p> : (
           <div className="grid gap-4 md:grid-cols-2">{Object.entries(byClass).map(([c, subs]) => {
@@ -246,7 +246,7 @@ export function MyClasses({ userId, show }: { userId: string; show: string }) {
   );
 }
 
-type News = { id: string; title: string; body: string; class_name: string | null; created_at: string; author_id: string };
+type News = { id: string; title: string; body: string; class_name: string | null; created_at: string; author_id: string; target_student_id?: string | null };
 function NewsList({ items, onDelete, userId }: { items: News[]; onDelete?: (id: string) => void; userId?: string }) {
   if (items.length === 0) return <p className="text-muted-foreground">No announcements yet.</p>;
   return (
@@ -264,7 +264,7 @@ export function FamilyLearning({ show, student }: { show: string; student: { id:
   const all = useData();
   const marks = all.marks.filter((m) => !student || m.student_id === student.id);
   const homework = all.homework.filter((h) => !student || h.class_name === student.class_name).filter((h) => show !== "overview" || dueStatus(h.due_date).tone !== "overdue").slice(0, show === "overview" ? 5 : undefined);
-  const news = all.news.filter((n) => !student || !n.class_name || n.class_name === student.class_name).slice(0, show === "overview" ? 3 : undefined);
+  const news = all.news.filter((n) => !student || (n.target_student_id ? n.target_student_id === student.id : !n.class_name || n.class_name === student.class_name)).slice(0, show === "overview" ? 3 : undefined);
   const diary = all.diary.filter((d) => !student || d.class_name === student.class_name);
   return (
     <>
@@ -279,10 +279,10 @@ export function FamilyLearning({ show, student }: { show: string; student: { id:
         )}
       </Card>
       </>}
-      {show === "announcements" || show === "overview" && <>
+      {(show === "announcements" || show === "overview") && <>
       <Card title="Announcements"><NewsList items={news} /></Card>
       </>}
-      {show === "homework" || show === "overview" && <>
+      {(show === "homework" || show === "overview") && <>
       <Card title="Homework">
         {homework.length > 0 && <p className="mb-3 text-sm"><span className="portal-badge portal-badge-gold">{homework.filter((h) => dueStatus(h.due_date).tone === "soon").length} due in the next 3 days</span></p>}
         {homework.length === 0 ? <p className="text-muted-foreground">No homework right now.</p> : (
@@ -299,7 +299,7 @@ export function FamilyLearning({ show, student }: { show: string; student: { id:
         )}
       </Card>
       </>}
-      {show === "results" || show === "overview" && <>
+      {(show === "results" || show === "overview") && <>
       <Card title="Marks & feedback">
         <p className="mb-3 text-sm text-muted-foreground">Only marks your teachers have published appear here. Drafts stay hidden until they are final.</p>
         {marks.length === 0 ? <p className="text-muted-foreground">No marks published yet.</p> : (
