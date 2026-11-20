@@ -44,7 +44,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
     const { error } = await supabase.from("marks").insert({
       student_id: String(f.get("student")), subject: String(f.get("subject")), assessment: String(f.get("assessment")),
       term: String(f.get("term")), score, max_score: max, comment: String(f.get("comment") || "") || null,
-      published: f.get("publish") === "on", teacher_id: userId,
+      published: false, teacher_id: userId,
     });
     done(error, "Mark saved", form);
   }
@@ -71,7 +71,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
     e.preventDefault();
     const form = e.currentTarget; const f = new FormData(form);
     const { error } = await supabase.from("announcements").insert({
-      title: String(f.get("title")), body: String(f.get("body")), class_name: (f.get("class") as string) || null, author_id: userId,
+      title: String(f.get("title")), body: String(f.get("body")), class_name: String(f.get("class") || "").startsWith("student:") ? null : (f.get("class") as string) || null, target_student_id: String(f.get("class") || "").startsWith("student:") ? String(f.get("class")).slice(8) : null, author_id: userId,
     });
     done(error, "Announcement posted", form);
   }
@@ -128,7 +128,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
       </Card>
       </>}
       {show === "marks" && <>
-      <Card title="New mark entry" subtitle="Marks remain staff-only unless you choose to publish to the student and parent.">
+      <Card title="New mark entry" subtitle="Save marks, then submit them under Results review.">
         <form onSubmit={addMark} className="portal-form-grid">
           <FormField label="Class"><select value={klass} onChange={(e) => setKlass(e.target.value)} className={field}><option value="">All classes</option>{classes.map((c) => <option key={c}>{c}</option>)}</select></FormField>
           <FormField label="Student"><select name="student" required className={field}><option value="">Choose student</option>{classStudents.map((s) => <option key={s.id} value={s.id}>{s.full_name} ({s.class_name})</option>)}</select></FormField>
@@ -138,7 +138,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
           <FormField label="Score"><input name="score" type="number" step="0.5" min="0" required placeholder="Score" className={field} /></FormField>
           <FormField label="Maximum score"><input name="max" type="number" step="0.5" min="1" defaultValue={100} className={field} /></FormField>
           <FormField label="Feedback (optional)"><input name="comment" placeholder="Short note for the learner" className={field} /></FormField>
-          <label className="portal-checkline portal-field-full"><input type="checkbox" name="publish" />Publish to student and parent now</label>
+          
           <div className="portal-form-actions portal-field-full"><button className="portal-btn" type="reset">Clear</button><button className="btn-primary">Save mark</button></div>
         </form>
       </Card>
@@ -149,12 +149,12 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
             <tbody>{marks.map((m) => (
               <tr key={m.id}><td><b>{m.students?.full_name}</b></td><td>{m.subject}</td><td>{m.assessment}</td><td>{m.term}</td><td>{Number(m.score)}/{Number(m.max_score)}</td><td><Badge on={m.published} yes="Published" no="Draft" /></td>
                 <td className="space-x-3 whitespace-nowrap text-right">{(m.teacher_id === userId) && <>
-                  <button onClick={() => editMark(m)} className="portal-text-link">Edit</button><button onClick={() => togglePublish("marks", m.id, m.published)} className="portal-text-link">{m.published ? "Unpublish" : "Publish"}</button><button onClick={() => remove("marks", m.id)} className="portal-text-link text-destructive">Delete</button></>}</td>
+                  <button onClick={() => editMark(m)} className="portal-text-link">Edit</button><button onClick={() => remove("marks", m.id)} className="portal-text-link text-destructive">Delete</button></>}</td>
               </tr>))}</tbody>
           </table></div>
         )}
       </Card>
-      <div className="portal-notice">Published marks are visible to the relevant student and linked parent account. Review before publishing.</div>
+      <div className="portal-notice">Published marks are visible to the relevant student and linked parent account. School leaders approve and publish results under Results review.</div>
       </>}
 
       {show === "homework" && <>
@@ -186,7 +186,7 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
       <Card title="Post announcement" subtitle="Choose an audience and share a concise message.">
         <form onSubmit={addNews} className="portal-form-grid mb-5">
           <FormField label="Title" full><input name="title" required placeholder="Announcement title" className={field} /></FormField>
-          <FormField label="Audience" full><select name="class" className={field}><option value="">Whole school</option>{classes.map((c) => <option key={c}>{c}</option>)}</select></FormField>
+          <FormField label="Audience" full><select name="class" className={field}><option value="">Whole school</option>{classes.map((c) => <option key={c}>{c}</option>)}{students.map(s=><option key={s.id} value={"student:"+s.id}>{s.full_name} · family</option>)}</select></FormField>
           <FormField label="Message" full><textarea name="body" required rows={3} placeholder="Write your announcement…" className={field} /></FormField>
           <div className="portal-form-actions portal-field-full"><button className="btn-primary">Post announcement</button></div>
         </form>
@@ -200,8 +200,9 @@ export function StaffTools({ userId, show }: { userId: string; show: string }) {
 function Attachment({ path, name }: { path: string | null; name: string | null }) {
   if (!path) return null;
   async function open() {
+    if (!path) return;
     const w = window.open("", "_blank");
-    const { data, error } = await supabase.storage.from("homework").createSignedUrl(path!, 120);
+    const { data, error } = await supabase.storage.from("homework").createSignedUrl(path, 120);
     if (error || !data) { w?.close(); toast.error("Could not open the attachment."); return; }
     if (w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
   }
@@ -328,12 +329,6 @@ export function Gradebook({ userId }: { userId: string }) {
   const cells = marks.filter((m) => m.students?.class_name === c && m.subject === subj && m.term === term);
   const cols = [...new Set(cells.map((m) => m.assessment))];
   const drafts = cells.filter((m) => !m.published && m.teacher_id === userId);
-  async function publishAll() {
-    if (!drafts.length) return;
-    if (!confirm(`Publish ${drafts.length} draft mark${drafts.length > 1 ? "s" : ""} for ${c} · ${subj} · ${term}? Students and parents will see them straight away.`)) return;
-    const { error } = await supabase.from("marks").update({ published: true }).in("id", drafts.map((d) => d.id));
-    if (error) toast.error(error.message); else { toast.success("Results published"); qc.invalidateQueries({ queryKey: ["marks"] }); }
-  }
   return (
     <>
       <Card title="Class gradebook" subtitle="Select a class, subject and term to review marks." bodyClass="!p-0">
@@ -341,7 +336,7 @@ export function Gradebook({ userId }: { userId: string }) {
           <select value={c} onChange={(e) => setKlass(e.target.value)} className={field} aria-label="Gradebook class">{classes.map((x) => <option key={x}>{x}</option>)}</select>
           <select value={subj} onChange={(e) => setSubject(e.target.value)} className={field} aria-label="Gradebook subject">{subjects.length === 0 && <option value="">No subjects yet</option>}{subjects.map((x) => <option key={x}>{x}</option>)}</select>
           <select value={term} onChange={(e) => setTerm(e.target.value)} className={field} aria-label="Gradebook term"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
-          <button onClick={publishAll} disabled={!drafts.length} className="btn-primary disabled:opacity-50">Publish results ({drafts.length})</button>
+          
         </div>
         <div className="flex flex-wrap gap-3 px-4 pb-4 text-[10px] text-muted-foreground"><span><Badge on yes="Published" no="" /> visible to families</span><span><Badge on={false} yes="" no="Draft" /> only staff can see</span></div>
         {rows.length === 0 ? <p className="portal-empty">No students in this class yet.</p> : cols.length === 0 ? <p className="portal-empty">No marks for this subject and term yet. Add them under Marks.</p> : (
@@ -356,7 +351,7 @@ export function Gradebook({ userId }: { userId: string }) {
         )}
         <div className="portal-table-foot"><span>{rows.length} students</span><span>{drafts.length} drafts</span></div>
       </Card>
-      <div className="portal-notice"><b>Before publishing:</b> Confirm scores and term selection. Published results will become visible to students and linked parents.</div>
+      <div className="portal-notice"><b>Before publishing:</b> Confirm scores and term selection. Submit results under Results review for leadership approval.</div>
     </>
   );
 }

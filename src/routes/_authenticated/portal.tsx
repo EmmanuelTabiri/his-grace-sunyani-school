@@ -17,6 +17,7 @@ import { meta } from "@/components/SiteLayout";
 import { ROLES, roleLabel, canChangeRole, type Role } from "@/lib/portal-access";
 import { portalSections, type SectionId } from "@/lib/portal-nav";
 import { SchoolSettings, useSchoolSettings } from "@/components/portal/SchoolSettings";
+import { Attendance, Payments, ResultReview, FamilyRecord, Calendar } from "@/components/portal/Operations";
 import { defaultSchoolSettings } from "@/lib/school-settings";
 
 export const Route = createFileRoute("/_authenticated/portal")({
@@ -26,8 +27,9 @@ export const Route = createFileRoute("/_authenticated/portal")({
 });
 
 const field = "w-full rounded-lg border bg-background px-3 py-2";
-const ICONS: Record<SectionId, LucideIcon> = { overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileText, settings: Settings };
+const ICONS: Record<SectionId, LucideIcon> = { attendance: ClipboardList, family: GraduationCap, review: ClipboardList, calendar: School, overview: LayoutDashboard, students: GraduationCap, staff: UserCog, classes: School, gradebook: Table2, marks: ClipboardList, results: ClipboardList, homework: BookOpen, announcements: Megaphone, diary: NotebookPen, fees: Receipt, reports: FileText, settings: Settings };
 const PAGE_DESCRIPTIONS: Record<SectionId, string> = {
+  attendance: "Daily attendance and absence records.", family: "Student placement and emergency contacts.", review: "Submit, review and approve term results.", calendar: "Holidays, examinations and school dates.",
   overview: "Here’s a clear view of what’s happening across your school.",
   students: "Manage student records, class placement and family links.",
   staff: "Manage portal access for staff, students and parents.",
@@ -96,7 +98,7 @@ function Portal() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
-  const referenceOrder: SectionId[] = ["overview", "students", "staff", "classes", "marks", "gradebook", "homework", "diary", "fees", "announcements", "results", "reports", "settings"];
+  const referenceOrder: SectionId[] = ["overview", "attendance", "family", "review", "calendar", "students", "staff", "classes", "marks", "gradebook", "homework", "diary", "fees", "announcements", "results", "reports", "settings"];
   const orderedSections = [...sections].sort((a, b) => referenceOrder.indexOf(a.id) - referenceOrder.indexOf(b.id));
   const nav = (
     <nav aria-label="Portal sections" className="portal-nav flex-1 overflow-y-auto">
@@ -178,6 +180,9 @@ function Portal() {
                 </div>}
                 <MyClasses userId={user.id} show={s} />
               </>}
+              {s === "calendar" && <Calendar leader={isLeader} />}
+              {isStaff && s === "attendance" && <Attendance userId={user.id} leader={isLeader} />}
+              {isStaff && s === "review" && <ResultReview userId={user.id} leader={isLeader} />}
               {isStaff && s === "gradebook" && <Gradebook userId={user.id} />}
               {isStaff && !(isLeader && s === "announcements") && <StaffTools userId={user.id} show={s} />}
               {isFamily && <>
@@ -190,7 +195,10 @@ function Portal() {
                 </section>}
                 {kids.length === 0 && s !== "overview" ? <Card title="No student linked"><p className="text-muted-foreground">Once the school links your account to a student, their records appear here.</p></Card> : <>
                   {(s === "overview" || s === "fees") && <FamilyArea studentId={kid?.id ?? null} compact={s === "overview"} />}
-                  <FamilyLearning show={s} student={kid ? { id: kid.id, class_name: kid.class_name } : null} />
+                  {s === "attendance" && kid && <Attendance userId={user.id} leader={false} studentId={kid.id} />}
+                  {s === "family" && kid && <FamilyRecord student={kid} />}
+                  {s === "results" && kid && <ResultReview userId={user.id} leader={false} studentId={kid.id} />}
+                  <FamilyLearning show={s === "results" ? "none" : s} student={kid ? { id: kid.id, class_name: kid.class_name } : null} />
                   {(s === "announcements" || s === "overview") && <UpcomingEvents />}
                 </>}
               </>}
@@ -267,6 +275,7 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
     const form = e.currentTarget; const f = new FormData(form);
     const values = {
       full_name: String(f.get("name")), class_name: String(f.get("class")), active: f.get("active") === "on",
+      guardian_name: String(f.get("guardian_name") || ""), guardian_phone: String(f.get("guardian_phone") || ""), guardian_email: String(f.get("guardian_email") || ""), emergency_name: String(f.get("emergency_name") || ""), emergency_phone: String(f.get("emergency_phone") || ""), emergency_relationship: String(f.get("emergency_relationship") || ""), medical_notes: String(f.get("medical_notes") || ""),
       student_user_id: (f.get("student_user") as string) || null, guardian_user_id: (f.get("guardian") as string) || null,
     };
     const { error } = editingId
@@ -313,9 +322,7 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
   const title = portalSections(roles).find((item) => item.id === section)?.label ?? "Portal";
   const pageAction = show === "students"
     ? <button className="btn-primary" onClick={() => { setEditingId(null); setStudentOpen(true); }}><Plus className="h-3.5 w-3.5" />Add student</button>
-    : show === "fees" && isAdmin
-      ? <><button className="portal-btn" onClick={() => setFeeOpen(true)}><Plus className="h-3.5 w-3.5" />Add fee</button><button className="btn-primary" onClick={() => { const unpaid = fees.find((fee) => fee.status === "unpaid"); if (unpaid) void markPaid(unpaid.id); else toast.info("No unpaid fees found."); }}>Record payment</button></>
-      : undefined;
+    : undefined;
 
   return (
     <>
@@ -352,11 +359,7 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
         </>}
       </Card>}
 
-      {show === "fees" && isAdmin && <Card title="Fees and payment records" subtitle="Filter the ledger, add fee entries and record receipts." bodyClass="!p-0">
-        <div className="portal-fee-summary"><div className="portal-fee-chip"><small>Total collected</small><b>{cedi(collected)}</b></div><div className="portal-fee-chip"><small>Outstanding balance</small><b>{cedi(outstanding)}</b></div><div className="portal-fee-chip"><small>Receipts issued</small><b>{receiptsIssued}</b></div></div>
-        <div className="portal-toolbar"><input value={feeQuery} onChange={(e) => setFeeQuery(e.target.value)} placeholder="Search student or receipt…" className={`${field} portal-search`} aria-label="Search fees" /><select value={feeStatus} onChange={(e) => setFeeStatus(e.target.value)} className={field} aria-label="Filter fees by status"><option value="all">All statuses</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select></div>
-        <FeeTable fees={visibleFees} onPay={markPaid} /><div className="portal-table-foot"><span>{visibleFees.length} fee records</span></div>
-      </Card>}
+      {show === "fees" && isAdmin && <Payments admin />}
 
       {show === "classes" && <AssignmentsCard teachers={profiles.filter((p) => p.roles.includes("teacher"))} classes={classes} />}
       {show === "announcements" && <div className="portal-grid-main"><EventsCard /><StaffTools userId={userId} show={show} /></div>}
@@ -370,6 +373,7 @@ function AdminArea({ roles, userId, show }: { roles: Role[]; userId: string; sho
             <label className="portal-field"><span>Class</span><input name="class" list="class-list" defaultValue={editing?.class_name} required placeholder="e.g. Basic 4" className={field} /><datalist id="class-list">{classes.map((c) => <option key={c} value={c} />)}</datalist></label>
             <label className="portal-field"><span>Student login (optional)</span><select name="student_user" defaultValue={editing?.student_user_id ?? ""} className={field}><option value="">No linked login</option>{profiles.filter((p) => p.roles.includes("student")).map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select></label>
             <label className="portal-field"><span>Parent login (optional)</span><select name="guardian" defaultValue={editing?.guardian_user_id ?? ""} className={field}><option value="">No linked login</option>{profiles.filter((p) => p.roles.includes("parent")).map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select></label>
+            {(["guardian_name", "guardian_phone", "guardian_email", "emergency_name", "emergency_phone", "emergency_relationship", "medical_notes"] as const).map(key => <label key={key} className="portal-field"><span>{key.replace(/_/g, " ").replace(/^./, c => c.toUpperCase())}</span><input name={key} type={key === "guardian_email" ? "email" : "text"} defaultValue={editing?.[key] ?? ""} className={field} /></label>)}
             <label className="portal-checkline portal-field-full"><input name="active" type="checkbox" defaultChecked={editing?.active ?? true} />Active student record</label>
             <div className="portal-form-actions portal-field-full"><button type="button" className="portal-btn" onClick={() => setStudentOpen(false)}>Cancel</button><button className="btn-primary">{editingId ? "Save student" : "Add student"}</button></div>
           </form>
@@ -522,7 +526,7 @@ function AssignmentsCard({ teachers, classes }: { teachers: { id: string; full_n
 function FamilyArea({ studentId, compact }: { studentId: string | null; compact?: boolean }) {
   const { data: all = [] } = useFees();
   const fees = all.filter((f) => !studentId || f.student_id === studentId);
-  const owed = fees.filter((f) => f.status === "unpaid").reduce((s, f) => s + Number(f.amount), 0);
+  const owed = fees.reduce((s, f) => s + Number(f.amount) - Number(f.paid_amount), 0);
   const paid = fees.filter((f) => f.status === "paid");
   if (compact) return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -530,10 +534,5 @@ function FamilyArea({ studentId, compact }: { studentId: string | null; compact?
       <Link to="/portal" search={{ s: "fees" }} className="portal-stat hover:border-primary"><p className="text-xs text-muted-foreground">Receipts available</p><p className="portal-stat-value mt-1">{paid.length}</p></Link>
     </div>
   );
-  return (
-    <Card title="Fees & receipts" action={<span className="rounded-full bg-secondary px-3 py-1 text-sm font-bold">Balance due: {cedi(owed)}</span>}>
-      <p className="mb-3 text-sm text-muted-foreground">Click a receipt number to open it, then use Print / Save as PDF to download.</p>
-      <FeeTable fees={fees} />
-    </Card>
-  );
+  return studentId ? <Payments admin={false} studentId={studentId} /> : null;
 }
