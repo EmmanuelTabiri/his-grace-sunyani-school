@@ -50,5 +50,14 @@ export async function downloadPdfReport(title: string, headers: string[], rows: 
       doc.text(`His Grace Academy · ${title} · Page ${doc.getNumberOfPages()}`, 40, h - 20);
     },
   });
-  doc.save(reportFilename(title, now));
+  const name = reportFilename(title, now);
+  let framed = false;
+  try { framed = window.self !== window.top; } catch { framed = true; }
+  if (framed) {
+    // Embedded previews often block downloads; open the PDF in a new tab instead.
+    const url = URL.createObjectURL(new File([doc.output("blob")], name, { type: "application/pdf" }));
+    const w2 = window.open(url, "_blank");
+    if (!w2) doc.save(name);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } else doc.save(name);
 }
